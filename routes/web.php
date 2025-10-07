@@ -67,14 +67,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Profile Management
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+     Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+        Route::patch('/', [ProfileController::class, 'update'])->name('update');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
+    });
 
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
-        Route::post('/{notification}/mark-read', [NotificationController::class, 'markRead'])->name('mark-read');
+        Route::post('/{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
         Route::post('/mark-all-read', [NotificationController::class, 'markAllRead'])->name('mark-all-read');
         Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
     });
@@ -178,12 +181,12 @@ Route::middleware(['auth', 'verified', 'user.type:consultant'])->prefix('consult
         Route::post('/{appointment}/confirm', [AppointmentController::class, 'confirm'])->name('confirm');
     });    
 
-    // Reports
-    Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/', [ReportController::class, 'consultantIndex'])->name('index');
-        Route::get('/performance', [ReportController::class, 'performance'])->name('performance');
-        Route::get('/applications', [ReportController::class, 'applications'])->name('applications');
-    });
+    // // Reports
+    // Route::prefix('reports')->name('reports.')->group(function () {
+    //     Route::get('/', [ReportController::class, 'consultantIndex'])->name('index');
+    //     Route::get('/performance', [ReportController::class, 'performance'])->name('performance');
+    //     Route::get('/applications', [ReportController::class, 'applications'])->name('applications');
+    // });
 
     // Profile
     Route::get('/profile', [ConsultantController::class, 'profile'])->name('profile');

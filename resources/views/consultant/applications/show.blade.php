@@ -19,7 +19,15 @@
         </div>
         
         <div class="flex items-center gap-3">
-            <button type="button" onclick="scheduleAppointment()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+            <button     
+               @click="window.dispatchEvent(new CustomEvent('open-appointment-modal', {
+                    detail: {
+                        applicationId: {{ $application->id }},
+                        applicantId: {{ $application->user_id }},
+                        applicantAddress: '{{ $application->full_address }}'
+                    }
+                }));" 
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
                 Schedule Appointment
             </button>
             <button type="button" onclick="addNote()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors">
@@ -29,20 +37,20 @@
     </div>
 
     <!-- Status & Progress Bar -->
-    <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
+    <div class="bg-gradient-to-r from-white-500 to-white-600 rounded-2xl p-6 text-white shadow-lg">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-                <p class="text-orange-100 text-sm font-medium">Current Status</p>
-                <p class="text-2xl font-bold mt-1">{{ $application->status_display }}</p>
-                <p class="text-orange-100 text-sm mt-2">{{ $application->current_stage_display }}</p>
+                <p class="text-purple-600 text-sm font-medium">Current Status</p>
+                <p class="text-2xl  text-purple-600 font-bold mt-1">{{ $application->status_display }}</p>
+                <p class="text-purple-600 text-sm mt-2">{{ $application->current_stage_display }}</p>
             </div>
             <div class="w-full md:w-64">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm text-orange-100">Progress</span>
-                    <span class="text-sm font-semibold">{{ number_format($application->completion_percentage, 0) }}%</span>
+                    <span class="text-sm text-green-700">Progress</span>
+                    <span class="text-sm text-green-700 font-semibold">{{ number_format($application->completion_percentage, 0) }}%</span>
                 </div>
-                <div class="w-full bg-orange-400/30 rounded-full h-3">
-                    <div class="bg-white h-3 rounded-full transition-all" style="width: {{ $application->completion_percentage }}%"></div>
+                <div class="w-full bg-purple-400/30 rounded-full h-3">
+                    <div class="bg-green-700 h-3 rounded-full transition-all" style="width: {{ $application->completion_percentage }}%"></div>
                 </div>
             </div>
         </div>
@@ -159,7 +167,14 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
                 <div class="space-y-2">
-                    <button onclick="scheduleAppointment()" class="w-full px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium text-left flex items-center gap-2">
+                    <button  @click="window.dispatchEvent(new CustomEvent('open-appointment-modal', {
+                                detail: {
+                                    applicationId: {{ $application->id }},
+                                    applicantId: {{ $application->user_id }},
+                                    applicantAddress: '{{ $application->full_address }}'
+                                }
+                            }));"
+                        class="w-full px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium text-left flex items-center gap-2">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                         </svg>
@@ -222,11 +237,11 @@
     </div>
 </div>
 
+
+<x-appointments.schedule-modal />
+
 @push('scripts')
 <script>
-function scheduleAppointment() {
-    alert('Open appointment scheduling modal');
-}
 
 function conductInspection() {
     window.location.href = "{{ route('consultant.inspections.create', ['application_id' => $application->id]) }}";

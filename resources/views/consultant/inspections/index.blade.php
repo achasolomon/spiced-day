@@ -5,12 +5,18 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Inspections</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">View and manage your inspection history</p>
-        </div>
+   <div class="flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Inspections</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">View and manage your inspection history</p>
     </div>
+    <a href="{{ route('consultant.inspections.create') }}" class="px-6 py-3 bg-purple-800 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        New Inspection
+    </a>
+</div>
 
     <!-- Filters -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">

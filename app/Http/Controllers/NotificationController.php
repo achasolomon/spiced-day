@@ -49,7 +49,7 @@ class NotificationController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function markAllAsRead()
+    public function markAllRead()
     {
         auth()->user()->notifications()->unread()->update([
             'is_read' => true,

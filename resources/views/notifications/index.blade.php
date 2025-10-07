@@ -1,6 +1,19 @@
-@extends('layouts.dashboard')
+@php
+    $layout = 'layouts.dashboard';
+
+    $userType = auth()->user()->user_type ?? null;
+
+    if ($userType === 'consultant') {
+        $layout = 'layouts.consultant';
+    } elseif ($userType === 'admin') {
+        $layout = 'layouts.admin';
+    }
+@endphp
+
+@extends($layout)
 
 @section('title', 'Notifications')
+
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-6">

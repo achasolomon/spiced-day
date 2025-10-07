@@ -6,11 +6,20 @@ use App\Models\Inspection;
 use App\Models\Application;
 use App\Models\Appointment;
 use App\Models\InspectionChecklist;
+use App\Enums\ApplicationStatus;
+use App\Services\ApplicationStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class InspectionController extends Controller
 {
+    protected $statusService;
+
+    public function __construct(ApplicationStatusService $statusService)
+    {
+        $this->statusService = $statusService;
+    }
+
     public function index(Request $request)
     {
         $query = Inspection::with(['application.user', 'consultant', 'appointment'])
@@ -39,7 +48,6 @@ class InspectionController extends Controller
 
     public function show(Inspection $inspection)
     {
-        // Check if user can view this inspection
         if (auth()->user()->isConsultant() && $inspection->consultant_id !== auth()->id()) {
             abort(403, 'You do not have permission to view this inspection.');
         }
@@ -60,23 +68,22 @@ class InspectionController extends Controller
 
     public function create(Request $request)
     {
-        // Only consultants and admins can create inspections
         if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
             abort(403, 'You do not have permission to create inspections.');
         }
 
         $appointment = null;
+        $applications = collect();
+
         if ($request->appointment_id) {
             $appointment = Appointment::with('application')->findOrFail($request->appointment_id);
             
-            // Check if consultant can access this appointment
             if (auth()->user()->isConsultant() && $appointment->consultant_id !== auth()->id()) {
                 abort(403, 'You do not have permission to access this appointment.');
             }
         } elseif ($request->application_id) {
             $application = Application::findOrFail($request->application_id);
             
-            // Check if consultant can access this application
             if (auth()->user()->isConsultant() && $application->consultant_id !== auth()->id()) {
                 abort(403, 'You do not have permission to access this application.');
             }
@@ -85,6 +92,28 @@ class InspectionController extends Controller
                 'application_id' => $request->application_id,
                 'application' => $application
             ];
+        } else {
+            // Show applications ready for inspection
+            $query = Application::with('user')
+                ->whereIn('status', [
+                    ApplicationStatus::MEET_AND_GREET_COMPLETED->value,
+                    ApplicationStatus::INITIAL_INSPECTION_SCHEDULED->value,
+                    ApplicationStatus::DOCUMENTS_APPROVED->value,
+                    ApplicationStatus::SECOND_INSPECTION_SCHEDULED->value,
+                ]);
+            
+            if (auth()->user()->isConsultant()) {
+                $query->where('consultant_id', auth()->id());
+            }
+            
+            $applications = $query->latest()->get();
+            
+            if ($applications->isNotEmpty()) {
+                return view('consultant.inspections.select-application', compact('applications'));
+            }
+            
+            return redirect()->route('consultant.inspections.index')
+                ->with('error', 'No applications available for inspection.');
         }
 
         return view('consultant.inspections.create', compact('appointment'));
@@ -92,7 +121,6 @@ class InspectionController extends Controller
 
     public function store(Request $request)
     {
-        // Only consultants and admins can create inspections
         if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
             abort(403, 'You do not have permission to create inspections.');
         }
@@ -113,14 +141,12 @@ class InspectionController extends Controller
 
         $application = Application::findOrFail($validated['application_id']);
         
-        // Check if consultant can access this application
         if (auth()->user()->isConsultant() && $application->consultant_id !== auth()->id()) {
             abort(403, 'You do not have permission to create inspections for this application.');
         }
 
         DB::beginTransaction();
         try {
-            // Calculate inspection results
             $results = $this->calculateInspectionResults($validated['checklist_results']);
 
             $inspection = Inspection::create(array_merge($validated, [
@@ -144,17 +170,16 @@ class InspectionController extends Controller
                 ]);
             }
 
-            // Create notification for applicant
-            $application->notifications()->create([
-                'user_id' => $application->user_id,
-                'type' => 'inspection_completed',
-                'title' => 'Inspection Completed',
-                'message' => "Your {$inspection->type} has been completed with result: {$inspection->overall_result}",
-                'priority' => $inspection->overall_result === 'fail' ? 'high' : 'normal',
-                'action_url' => route('inspections.show', $inspection),
-            ]);
+            // Update application status based on inspection type and result
+            $newStatus = $this->determineNewStatus($inspection);
+            if ($newStatus) {
+                $this->statusService->transitionTo(
+                    $application,
+                    $newStatus,
+                    "Inspection completed with result: {$inspection->overall_result}"
+                );
+            }
 
-            // Log the inspection
             \App\Models\AuditLog::log('inspection_completed', $inspection, 'Inspection completed', [
                 'overall_result' => $inspection->overall_result,
                 'overall_score' => $inspection->overall_score,
@@ -167,35 +192,13 @@ class InspectionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
+            \Log::error('Inspection creation failed', ['error' => $e->getMessage()]);
             return back()->with('error', 'Failed to complete inspection. Please try again.');
         }
     }
 
-    public function edit(Inspection $inspection)
-    {
-        // Check permissions and if inspection is finalized
-        if ($inspection->is_final) {
-            return back()->with('error', 'This inspection has been finalized and cannot be edited.');
-        }
-
-        if (auth()->user()->isConsultant() && $inspection->consultant_id !== auth()->id()) {
-            abort(403, 'You do not have permission to edit this inspection.');
-        }
-
-        if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
-            abort(403, 'You do not have permission to edit inspections.');
-        }
-
-        $checklists = InspectionChecklist::active()
-            ->where('inspection_type', $inspection->type)
-            ->get();
-
-        return view('inspections.edit', compact('inspection', 'checklists'));
-    }
-
     public function update(Request $request, Inspection $inspection)
     {
-        // Check permissions and if inspection is finalized
         if ($inspection->is_final) {
             return back()->with('error', 'This inspection has been finalized and cannot be edited.');
         }
@@ -221,9 +224,7 @@ class InspectionController extends Controller
 
         DB::beginTransaction();
         try {
-            // Calculate inspection results
             $results = $this->calculateInspectionResults($validated['checklist_results']);
-
             $oldValues = $inspection->only(['overall_result', 'overall_score']);
 
             $inspection->update(array_merge($validated, [
@@ -237,7 +238,6 @@ class InspectionController extends Controller
                 'requires_reinspection' => $results['requires_reinspection'],
             ]));
 
-            // Log the update
             \App\Models\AuditLog::log('inspection_updated', $inspection, 'Inspection updated', [
                 'old_values' => $oldValues,
                 'new_result' => $inspection->overall_result,
@@ -257,12 +257,10 @@ class InspectionController extends Controller
 
     public function finalize(Inspection $inspection)
     {
-        // Check if already finalized
         if ($inspection->is_final) {
             return back()->with('error', 'This inspection has already been finalized.');
         }
 
-        // Check permissions
         if (auth()->user()->isConsultant() && $inspection->consultant_id !== auth()->id()) {
             abort(403, 'You do not have permission to finalize this inspection.');
         }
@@ -279,16 +277,6 @@ class InspectionController extends Controller
                 'approved_at' => now(),
             ]);
 
-            // Create notification
-            $inspection->application->notifications()->create([
-                'user_id' => $inspection->application->user_id,
-                'type' => 'inspection_finalized',
-                'title' => 'Inspection Finalized',
-                'message' => "Your {$inspection->type} has been finalized.",
-                'priority' => 'normal',
-            ]);
-
-            // Log the finalization
             \App\Models\AuditLog::log('inspection_finalized', $inspection, 'Inspection finalized');
 
             DB::commit();
@@ -299,6 +287,20 @@ class InspectionController extends Controller
             DB::rollback();
             return back()->with('error', 'Failed to finalize inspection. Please try again.');
         }
+    }
+
+    private function determineNewStatus(Inspection $inspection): ?ApplicationStatus
+    {
+        // Only update status if inspection passed
+        if (!$inspection->isPassed()) {
+            return null;
+        }
+
+        return match($inspection->type) {
+            'initial_inspection' => ApplicationStatus::INITIAL_INSPECTION_COMPLETED,
+            'second_inspection' => ApplicationStatus::SECOND_INSPECTION_COMPLETED,
+            default => null,
+        };
     }
 
     private function calculateInspectionResults(array $checklistResults)
@@ -337,7 +339,6 @@ class InspectionController extends Controller
 
         $overallScore = $maxScore > 0 ? ($totalScore / $maxScore) * 100 : 0;
 
-        // Determine overall result
         $overallResult = 'incomplete';
         if ($criticalFailures > 0) {
             $overallResult = 'fail';

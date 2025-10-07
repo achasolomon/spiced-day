@@ -344,6 +344,7 @@ class Application extends Model
     return $prefix . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
 }
 
+
 protected static function boot()
 {
     parent::boot();

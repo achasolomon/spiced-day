@@ -228,7 +228,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getActiveApplication()
     {
         return $this->applications()->whereIn('status', [
-            'draft', 'submitted', 'under_review', 'initial_inspection_scheduled',
+            'draft', 'submitted', 'meet_and_greet_scheduled','meet_and_greet_completed', 'initial_inspection_scheduled',
             'initial_inspection_completed', 'documents_pending', 'documents_completed',
             'second_inspection_scheduled', 'second_inspection_completed',
             'final_review'
