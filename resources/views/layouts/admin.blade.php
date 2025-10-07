@@ -29,7 +29,7 @@
                         </button>
 
                         <a href="{{ route('admin.dashboard') }}" class="flex items-center ml-2 lg:ml-0 space-x-3">
-                            <div class="w-20 h-10 bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 rounded-full flex items-center justify-center">
+                            <div class="w-20 h-10 flex items-center justify-center">
                                 <img src="{{ asset('assets/images/logo.png') }}" alt="SPICE'd Logo" class="w-20 h-10 rounded-lg">
                             </div>
                             <h1 class="text-xl font-bold tracking-tight">

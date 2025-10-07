@@ -141,5 +141,14 @@ class Document extends Model
     public function incrementDownloadCount()
     {
         $this->increment('download_count');
-    }
+    }// app/Models/Document.php
+
+public function scopePendingReview($query)
+{
+    return $query->where('status', 'under_review')
+                 ->orWhere('status', 'uploaded');
+}
+
+
+
 }

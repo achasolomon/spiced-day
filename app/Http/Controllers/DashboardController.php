@@ -163,6 +163,9 @@ class DashboardController extends Controller
     /**
      * Admin Dashboard
      */
+   /**
+ * Admin Dashboard
+ */
     public function admin()
     {
         // System Overview Stats
@@ -201,17 +204,22 @@ class DashboardController extends Controller
             ->pluck('count', 'month')
             ->toArray();
 
-        // Consultant Performance
+        // Consultant Performance - FIXED: Filter out null users
         $consultantPerformance = User::consultants()
             ->with('consultant')
             ->withCount([
                 'assignedApplications as total_assigned',
                 'assignedApplications as completed_this_month' => function($query) {
                     $query->whereIn('status', ['approved', 'rejected'])
-                          ->whereMonth('updated_at', now()->month);
+                        ->whereMonth('updated_at', now()->month);
                 }
             ])
             ->get()
+            ->filter(function($user) {
+                // Only include users that exist and have a consultant relationship
+                return $user && $user->consultant !== null;
+            })
+            ->sortByDesc('completed_this_month')
             ->take(5);
 
         // System Alerts

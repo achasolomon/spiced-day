@@ -467,4 +467,62 @@ class ApplicationController extends Controller
             return back()->with('error', 'Failed to enable document upload.');
         }
     }
+
+    /**
+ * Admin view of all applications
+ */
+    public function adminIndex(Request $request)
+    {
+        $query = Application::with(['user', 'consultant'])
+            ->when($request->search, function ($q, $search) {
+                return $q->where(function($query) use ($search) {
+                    $query->where('educator_first_name', 'like', "%{$search}%")
+                        ->orWhere('educator_last_name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('application_number', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->status, function ($q, $status) {
+                return $q->where('status', $status);
+            })
+            ->when($request->stage, function ($q, $stage) {
+                return $q->where('current_stage', $stage);
+            })
+            ->when($request->consultant, function ($q, $consultantId) {
+                return $q->where('consultant_id', $consultantId);
+            })
+            ->when($request->filter === 'unassigned', function ($q) {
+                return $q->whereNull('consultant_id')
+                        ->whereIn('status', ['submitted', 'under_review']);
+            })
+            ->when($request->date_from, function ($q, $dateFrom) {
+                return $q->whereDate('created_at', '>=', $dateFrom);
+            })
+            ->when($request->date_to, function ($q, $dateTo) {
+                return $q->whereDate('created_at', '<=', $dateTo);
+            });
+
+        // Get sorting parameters
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        
+        $applications = $query->orderBy($sortBy, $sortOrder)->paginate(15);
+
+        // Get consultants for filter dropdown
+        $consultants = \App\Models\User::consultants()
+            ->active()
+            ->orderBy('name')
+            ->get();
+
+        // Get statistics for the current filter
+        $stats = [
+            'total' => (clone $query)->count(),
+            'submitted' => (clone $query)->where('status', 'submitted')->count(),
+            'under_review' => (clone $query)->where('status', 'under_review')->count(),
+            'approved' => (clone $query)->where('status', 'approved')->count(),
+            'rejected' => (clone $query)->where('status', 'rejected')->count(),
+        ];
+
+        return view('admin.applications.index', compact('applications', 'consultants', 'stats'));
+    }
 }
