@@ -361,4 +361,65 @@ class InspectionController extends Controller
             'requires_reinspection' => in_array($overallResult, ['fail', 'conditional_pass']),
         ];
     }
+
+    /**
+ * Admin view of all inspections
+ */
+public function adminIndex(Request $request)
+{
+    $query = Inspection::with(['application.user', 'consultant', 'appointment'])
+        ->when($request->search, function ($q, $search) {
+            return $q->whereHas('application', function($query) use ($search) {
+                $query->where('educator_first_name', 'like', "%{$search}%")
+                      ->orWhere('educator_last_name', 'like', "%{$search}%")
+                      ->orWhere('application_number', 'like', "%{$search}%");
+            });
+        })
+        ->when($request->type, function ($q, $type) {
+            return $q->where('type', $type);
+        })
+        ->when($request->result, function ($q, $result) {
+            return $q->where('overall_result', $result);
+        })
+        ->when($request->consultant_id, function ($q, $consultantId) {
+            return $q->where('consultant_id', $consultantId);
+        })
+        ->when($request->status, function ($q, $status) {
+            if ($status === 'pending') {
+                return $q->where('is_final', false);
+            } elseif ($status === 'finalized') {
+                return $q->where('is_final', true);
+            }
+        })
+        ->when($request->date_from, function ($q, $dateFrom) {
+            return $q->whereDate('conducted_at', '>=', $dateFrom);
+        })
+        ->when($request->date_to, function ($q, $dateTo) {
+            return $q->whereDate('conducted_at', '<=', $dateTo);
+        });
+
+    // Sorting
+    $sortBy = $request->get('sort_by', 'conducted_at');
+    $sortOrder = $request->get('sort_order', 'desc');
+    
+    $inspections = $query->orderBy($sortBy, $sortOrder)->paginate(15);
+
+    // Get consultants for filter
+    $consultants = \App\Models\User::consultants()
+        ->active()
+        ->orderBy('name')
+        ->get();
+
+    // Statistics
+    $stats = [
+        'total' => Inspection::count(),
+        'passed' => Inspection::where('overall_result', 'pass')->count(),
+        'failed' => Inspection::where('overall_result', 'fail')->count(),
+        'conditional' => Inspection::where('overall_result', 'conditional_pass')->count(),
+        'pending_finalization' => Inspection::where('is_final', false)->count(),
+        'this_month' => Inspection::whereMonth('conducted_at', now()->month)->count(),
+    ];
+
+    return view('admin.inspections.index', compact('inspections', 'consultants', 'stats'));
+}
 }

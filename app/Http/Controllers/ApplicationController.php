@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Application;
 use App\Enums\ApplicationStatus;
+use App\Models\User;
 use App\Services\ApplicationStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -201,7 +202,6 @@ class ApplicationController extends Controller
                 ->with('error', 'Failed to create application: ' . $e->getMessage());
         }
     }
-
     public function update(Request $request, Application $application)
     {
         if ($application->user_id !== auth()->id()) {
@@ -469,8 +469,8 @@ class ApplicationController extends Controller
     }
 
     /**
- * Admin view of all applications
- */
+     * Admin view of all applications
+     */
     public function adminIndex(Request $request)
     {
         $query = Application::with(['user', 'consultant'])
@@ -525,4 +525,186 @@ class ApplicationController extends Controller
 
         return view('admin.applications.index', compact('applications', 'consultants', 'stats'));
     }
+     public function assignConsultant(Request $request, Application $application)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'consultant_id' => 'required|exists:users,id',
+        ]);
+
+        $application->update([
+            'consultant_id' => $validated['consultant_id'],
+        ]);
+
+        return redirect()
+            ->route('admin.applications.index')
+            ->with('success', 'Consultant assigned successfully!');
+    }
+    public function adminShow(Application $application)
+    {
+        // Load all necessary relationships
+        $application->load([
+            'user',
+            'consultant',
+            'documents.uploadedBy',
+            'documents.reviewedBy',
+            'appointments.consultant',
+            'appointments.applicant',
+            'inspections.consultant',
+            'inspections.appointment',
+            'stages',
+            'notifications',
+            'auditLogs.user'
+        ]);
+
+        // Get statistics for this application
+        $stats = [
+            'total_documents' => $application->documents()->count(),
+            'approved_documents' => $application->documents()->where('status', 'approved')->count(),
+            'pending_documents' => $application->documents()->whereIn('status', ['uploaded', 'under_review'])->count(),
+            'rejected_documents' => $application->documents()->where('status', 'rejected')->count(),
+            
+            'total_appointments' => $application->appointments()->count(),
+            'upcoming_appointments' => $application->appointments()
+                ->where('scheduled_at', '>', now())
+                ->whereIn('status', ['scheduled', 'confirmed'])
+                ->count(),
+            'completed_appointments' => $application->appointments()->where('status', 'completed')->count(),
+            
+            'total_inspections' => $application->inspections()->count(),
+            'passed_inspections' => $application->inspections()->where('overall_result', 'pass')->count(),
+            'failed_inspections' => $application->inspections()->where('overall_result', 'fail')->count(),
+        ];
+
+        // Get all consultants for potential reassignment
+        $consultants = User::consultants()
+            ->whereHas('consultant', function ($query) {
+                $query->where('employment_status', 'active');
+            })
+            ->get();
+
+        // Get timeline/activity (audit logs + status changes)
+        $timeline = $application->auditLogs()
+            ->with('user')
+            ->latest()
+            ->take(20)
+            ->get();
+
+        // Get required documents for current stage
+        $requiredDocuments = $application->getRequiredDocumentsForStage();
+        
+        // Get uploaded document categories
+        $uploadedCategories = $application->documents()
+            ->where('status', '!=', 'rejected')
+            ->pluck('category')
+            ->unique()
+            ->toArray();
+        
+        // Calculate missing documents
+        $missingDocuments = array_diff($requiredDocuments, $uploadedCategories);
+
+        // Get next scheduled appointment
+        $nextAppointment = $application->appointments()
+            ->where('scheduled_at', '>', now())
+            ->whereIn('status', ['scheduled', 'confirmed'])
+            ->orderBy('scheduled_at')
+            ->first();
+
+        // Get latest inspection
+        $latestInspection = $application->inspections()
+            ->latest('conducted_at')
+            ->first();
+
+        return view('admin.applications.show', compact(
+            'application',
+            'stats',
+            'consultants',
+            'timeline',
+            'requiredDocuments',
+            'uploadedCategories',
+            'missingDocuments',
+            'nextAppointment',
+            'latestInspection'
+        ));
+    }
+
+  /**
+ * Show audit log for an application
+ */
+    public function auditLog(Application $application)
+    {
+        // Authorization check
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Only administrators can view audit logs.');
+        }
+
+        // Load the application with necessary relationships
+        $application->load(['user', 'consultant']);
+
+        // Apply filters from request
+        $query = $application->auditLogs()->with('user');
+
+        if (request('action')) {
+            $query->where('action', request('action'));
+        }
+
+        if (request('category')) {
+            $query->where('category', request('category'));
+        }
+
+        if (request('date_from')) {
+            $query->whereDate('created_at', '>=', request('date_from'));
+        }
+
+        if (request('date_to')) {
+            $query->whereDate('created_at', '<=', request('date_to'));
+        }
+
+        // Get paginated audit logs
+        $auditLogs = $query->latest()->paginate(50);
+
+        // Get statistics - Fixed to use correct column names
+        $stats = [
+            'total_logs' => $application->auditLogs()->count(),
+            'status_changes' => $application->auditLogs()
+                ->where('action', 'like', '%status%')
+                ->count(),
+            'document_actions' => $application->auditLogs()
+                ->where('category', 'document_management')
+                ->count(),
+            'appointment_actions' => $application->auditLogs()
+                ->where('category', 'appointment')
+                ->count(),
+            'inspection_actions' => $application->auditLogs()
+                ->where('category', 'inspection')
+                ->count(),
+        ];
+
+        // Get unique actions for filtering
+        $actions = $application->auditLogs()
+            ->select('action')
+            ->distinct()
+            ->pluck('action')
+            ->sort();
+
+        // Get unique categories for filtering
+        $categories = $application->auditLogs()
+            ->select('category')
+            ->distinct()
+            ->whereNotNull('category')
+            ->pluck('category')
+            ->sort();
+
+        return view('admin.applications.audit-log', compact(
+            'application',
+            'auditLogs',
+            'stats',
+            'actions',
+            'categories'
+        ));
+    }
+
 }

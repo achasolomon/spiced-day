@@ -521,4 +521,60 @@ public function calendar()
             default => null,
         };
     }
+
+    /**
+ * Admin view of all appointments
+ */
+public function adminIndex(Request $request)
+{
+    $query = Appointment::with(['application.user', 'consultant', 'applicant'])
+        ->when($request->status, function ($q, $status) {
+            return $q->where('status', $status);
+        })
+        ->when($request->type, function ($q, $type) {
+            return $q->where('type', $type);
+        })
+        ->when($request->consultant_id, function ($q, $consultantId) {
+            return $q->where('consultant_id', $consultantId);
+        })
+        ->when($request->date_from, function ($q, $dateFrom) {
+            return $q->whereDate('scheduled_at', '>=', $dateFrom);
+        })
+        ->when($request->date_to, function ($q, $dateTo) {
+            return $q->whereDate('scheduled_at', '<=', $dateTo);
+        })
+        ->when($request->search, function ($q, $search) {
+            return $q->whereHas('applicant', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            });
+        });
+
+    $appointments = $query->latest('scheduled_at')->paginate(20);
+
+    // Get statistics
+    $stats = [
+        'total' => Appointment::count(),
+        'scheduled' => Appointment::where('status', 'scheduled')->count(),
+        'confirmed' => Appointment::where('status', 'confirmed')->count(),
+        'completed' => Appointment::where('status', 'completed')->count(),
+        'cancelled' => Appointment::where('status', 'cancelled')->count(),
+        'upcoming' => Appointment::where('scheduled_at', '>', now())
+            ->whereIn('status', ['scheduled', 'confirmed'])
+            ->count(),
+        'today' => Appointment::whereDate('scheduled_at', today())
+            ->whereIn('status', ['scheduled', 'confirmed'])
+            ->count(),
+    ];
+
+    // Get consultants for filter
+    $consultants = \App\Models\User::consultants()
+        ->select('id', 'name')
+        ->orderBy('name')
+        ->get();
+
+    return view('admin.appointments.index', compact('appointments', 'stats', 'consultants'));
+}
+
+  
 }

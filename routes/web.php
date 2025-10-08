@@ -80,6 +80,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
         Route::post('/mark-all-read', [NotificationController::class, 'markAllRead'])->name('mark-all-read');
         Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+       Route::post('/send-to-user/{user}', [NotificationController::class, 'sendToUser'])->name('send');
+
     });
 
     // File Downloads
@@ -208,6 +210,7 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
         Route::get('/create', [AdminController::class, 'createUser'])->name('create');
         Route::post('/', [AdminController::class, 'storeUser'])->name('store');
         Route::get('/{user}', [AdminController::class, 'showUser'])->name('show');
+        Route::get('/{user}/data', [AdminController::class, 'getUserData'])->name('data'); // Add this line
         Route::get('/{user}/edit', [AdminController::class, 'editUser'])->name('edit');
         Route::put('/{user}', [AdminController::class, 'updateUser'])->name('update');
         Route::delete('/{user}', [AdminController::class, 'destroyUser'])->name('destroy');
@@ -216,7 +219,21 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
     });
 
     // Consultants
-    Route::resource('consultants', ConsultantController::class);
+    Route::prefix('consultants')->name('consultants.')->group(function () {
+            Route::get('/', [ConsultantController::class, 'index'])->name('index');
+            Route::get('/available-users', [ConsultantController::class, 'getAvailableUsers'])->name('available-users'); // Add this
+            Route::get('/create', [ConsultantController::class, 'create'])->name('create');
+            Route::post('/', [ConsultantController::class, 'store'])->name('store');
+            Route::get('/{consultant}', [ConsultantController::class, 'show'])->name('show');
+            Route::get('/{consultant}/data', [ConsultantController::class, 'getConsultantData'])->name('data');
+            Route::get('/{consultant}/edit', [ConsultantController::class, 'edit'])->name('edit');
+            Route::put('/{consultant}', [ConsultantController::class, 'update'])->name('update');
+            Route::delete('/{consultant}', [ConsultantController::class, 'destroy'])->name('destroy');
+            Route::post('/{consultant}/toggle-availability', [ConsultantController::class, 'toggleAvailability'])->name('toggle-availability');
+            Route::post('/{consultant}/update-workload', [ConsultantController::class, 'updateWorkload'])->name('update-workload');
+        });
+ 
+
 
     // Applications
     Route::prefix('applications')->name('applications.')->group(function () {
@@ -226,6 +243,51 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
         Route::post('/{application}/reject', [ApplicationController::class, 'reject'])->name('reject');
         Route::post('/{application}/assign-consultant', [ApplicationController::class, 'assignConsultant'])->name('assign-consultant');
         Route::get('/{application}/audit-log', [ApplicationController::class, 'auditLog'])->name('audit-log');
+    });
+
+     // Appointments
+    Route::prefix('appointments')->name('appointments.')->group(function () {
+        Route::get('/', [AppointmentController::class, 'adminIndex'])->name('index');
+        Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('show');
+        Route::get('/{appointment}/edit', [AppointmentController::class, 'edit'])->name('edit');
+        Route::put('/{appointment}', [AppointmentController::class, 'update'])->name('update');
+        Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('cancel');
+        Route::post('/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('reschedule');
+        Route::get('/calendar', [AppointmentController::class, 'adminCalendar'])->name('calendar');
+    });
+
+    // Inspections
+    Route::prefix('inspections')->name('inspections.')->group(function () {
+        Route::get('/', [InspectionController::class, 'adminIndex'])->name('index');
+        Route::get('/{inspection}', [InspectionController::class, 'show'])->name('show');
+        Route::get('/{inspection}/edit', [InspectionController::class, 'edit'])->name('edit');
+        Route::put('/{inspection}', [InspectionController::class, 'update'])->name('update');
+        Route::delete('/{inspection}', [InspectionController::class, 'destroy'])->name('destroy');
+        Route::get('/{inspection}/report', [InspectionController::class, 'report'])->name('report');
+        Route::post('/{inspection}/report/export', [InspectionController::class, 'exportReport'])->name('report.export');
+    });
+
+    // Documents
+    Route::prefix('documents')->name('documents.')->group(function () {
+        Route::get('/', [DocumentController::class, 'adminIndex'])->name('index');
+        Route::get('/{document}', [DocumentController::class, 'show'])->name('show');
+        Route::post('/{document}/approve', [DocumentController::class, 'approve'])->name('approve');
+        Route::post('/{document}/reject', [DocumentController::class, 'reject'])->name('reject');
+        Route::post('/{document}/request-revision', [DocumentController::class, 'requestRevision'])->name('request-revision');
+        Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy');
+        Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
+        Route::get('/pending-review', [DocumentController::class, 'pendingReview'])->name('pending-review');
+        Route::get('/expired', [DocumentController::class, 'expired'])->name('expired');
+    });
+
+    // Audit Logs / Activity Log
+    Route::prefix('audit-logs')->name('audit-logs.')->group(function () {
+        Route::get('/', [AuditLogController::class, 'index'])->name('index');
+        Route::get('/{auditLog}', [AuditLogController::class, 'show'])->name('show');
+        Route::get('/user/{user}', [AuditLogController::class, 'userActivity'])->name('user-activity');
+        Route::get('/application/{application}', [AuditLogController::class, 'applicationActivity'])->name('application-activity');
+        Route::post('/export', [AuditLogController::class, 'export'])->name('export');
+        Route::delete('/clear-old', [AuditLogController::class, 'clearOld'])->name('clear-old');
     });
 
     // Reports

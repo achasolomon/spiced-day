@@ -14,9 +14,11 @@
             <a href="{{ route('admin.reports.index') }}" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 View Reports
             </a>
-            <a href="{{ route('admin.users.create') }}" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
+            <button 
+                @click="$dispatch('open-create-user-modal')" 
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
                 Add New User
-            </a>
+            </button>
         </div>
     </div>
 
@@ -222,4 +224,5 @@
         </div>
     </div>
 </div>
+<x-users.create-modal />
 @endsection

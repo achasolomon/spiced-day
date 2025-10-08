@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/ConsultantController.php
 
 namespace App\Http\Controllers;
 
@@ -13,14 +12,19 @@ class ConsultantController extends Controller
 {
     public function index(Request $request)
     {
-        Gate::authorize('viewAny', Consultant::class);
-
         $query = Consultant::with('user')
             ->when($request->department, function ($q, $department) {
                 return $q->where('department', $department);
             })
             ->when($request->employment_status, function ($q, $status) {
                 return $q->where('employment_status', $status);
+            })
+            ->when($request->availability, function ($q, $availability) {
+                if ($availability === 'accepting') {
+                    return $q->where('accepts_new_applications', true);
+                } elseif ($availability === 'not_accepting') {
+                    return $q->where('accepts_new_applications', false);
+                }
             })
             ->when($request->search, function ($q, $search) {
                 return $q->whereHas('user', function ($query) use ($search) {
@@ -31,13 +35,11 @@ class ConsultantController extends Controller
 
         $consultants = $query->latest()->paginate(15);
 
-        return view('consultants.index', compact('consultants'));
+        return view('admin.consultants.index', compact('consultants'));
     }
 
     public function show(Consultant $consultant)
     {
-        Gate::authorize('view', $consultant);
-
         $consultant->load([
             'user',
             'assignedApplications' => function ($query) {
@@ -51,24 +53,94 @@ class ConsultantController extends Controller
             }
         ]);
 
-        return view('consultants.show', compact('consultant'));
+        return view('admin.consultants.show', compact('consultant'));
+    }
+
+    /**
+     * Get consultant data as JSON for modal display
+     */
+    public function getConsultantData(Consultant $consultant)
+    {
+        $consultant->load(['user', 'assignedApplications', 'appointments', 'inspections']);
+
+        // Get stats
+        $stats = [
+            'total_applications' => $consultant->assignedApplications()->count(),
+            'active_applications' => $consultant->assignedApplications()->whereIn('status', [
+                'submitted', 'under_review', 'documents_pending', 'documents_submitted'
+            ])->count(),
+            'completed_applications' => $consultant->assignedApplications()->whereIn('status', [
+                'approved', 'rejected'
+            ])->count(),
+            'pending_inspections' => $consultant->appointments()
+                ->whereIn('type', ['initial_inspection', 'second_inspection'])
+                ->where('status', 'scheduled')
+                ->count(),
+            'completed_inspections' => $consultant->inspections()->count(),
+            'appointments_this_month' => $consultant->appointments()
+                ->whereMonth('scheduled_at', now()->month)
+                ->count(),
+        ];
+
+        // Get recent activity
+        $recentActivity = \App\Models\AuditLog::where('user_id', $consultant->user_id)
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'description' => $log->description,
+                    'created_at' => $log->created_at->diffForHumans(),
+                ];
+            });
+
+        return response()->json([
+            'id' => $consultant->id,
+            'user_id' => $consultant->user_id,
+            'user_name' => $consultant->user->name,
+            'user_email' => $consultant->user->email,
+            'employee_id' => $consultant->employee_id,
+            'department' => $consultant->department,
+            'position_title' => $consultant->position_title,
+            'hire_date' => $consultant->hire_date->format('Y-m-d'),
+            'hire_date_formatted' => $consultant->hire_date->format('M d, Y'),
+            'employment_status' => $consultant->employment_status,
+            'certifications' => $consultant->certifications,
+            'specializations' => $consultant->specializations,
+            'qualifications' => $consultant->qualifications,
+            'languages' => $consultant->languages,
+            'service_areas' => $consultant->service_areas,
+            'max_concurrent_applications' => $consultant->max_concurrent_applications,
+            'active_applications' => $consultant->active_applications,
+            'accepts_new_applications' => $consultant->accepts_new_applications,
+            'work_phone' => $consultant->work_phone,
+            'emergency_contact_name' => $consultant->emergency_contact_name,
+            'emergency_contact_phone' => $consultant->emergency_contact_phone,
+            'can_approve_applications' => $consultant->can_approve_applications,
+            'can_conduct_inspections' => $consultant->can_conduct_inspections,
+            'can_view_all_applications' => $consultant->can_view_all_applications,
+            'bio' => $consultant->bio,
+            'internal_notes' => $consultant->internal_notes,
+            'client_satisfaction_rating' => $consultant->client_satisfaction_rating,
+            'total_applications_handled' => $consultant->total_applications_handled,
+            'approval_rate' => $consultant->approval_rate,
+            'stats' => $stats,
+            'recent_activity' => $recentActivity,
+        ]);
     }
 
     public function create()
     {
-        Gate::authorize('create', Consultant::class);
-
         $users = User::where('user_type', 'consultant')
             ->doesntHave('consultant')
             ->get();
 
-        return view('consultants.create', compact('users'));
+        return view('admin.consultants.create', compact('users'));
     }
 
     public function store(Request $request)
     {
-        Gate::authorize('create', Consultant::class);
-
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id|unique:consultants,user_id',
             'employee_id' => 'required|string|unique:consultants,employee_id',
@@ -102,26 +174,23 @@ class ConsultantController extends Controller
 
             DB::commit();
 
-            return redirect()->route('consultants.show', $consultant)
+            return redirect()->route('admin.consultants.index')
                 ->with('success', 'Consultant profile created successfully!');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Failed to create consultant profile. Please try again.');
+            \Log::error('Consultant creation failed', ['error' => $e->getMessage()]);
+            return back()->withInput()->with('error', 'Failed to create consultant profile. Please try again.');
         }
     }
 
     public function edit(Consultant $consultant)
     {
-        Gate::authorize('update', $consultant);
-
-        return view('consultants.edit', compact('consultant'));
+        return view('admin.consultants.edit', compact('consultant'));
     }
 
     public function update(Request $request, Consultant $consultant)
     {
-        Gate::authorize('update', $consultant);
-
         $validated = $request->validate([
             'employee_id' => 'required|string|unique:consultants,employee_id,' . $consultant->id,
             'department' => 'nullable|string|max:255',
@@ -154,14 +223,25 @@ class ConsultantController extends Controller
             'new_values' => $validated
         ]);
 
-        return redirect()->route('consultants.show', $consultant)
+        return redirect()->route('admin.consultants.index')
             ->with('success', 'Consultant profile updated successfully!');
+    }
+
+    public function destroy(Consultant $consultant)
+    {
+        // Check if consultant has active applications
+        if ($consultant->active_applications > 0) {
+            return back()->with('error', 'Cannot delete consultant with active applications.');
+        }
+
+        $consultant->delete();
+
+        return redirect()->route('admin.consultants.index')
+            ->with('success', 'Consultant deleted successfully!');
     }
 
     public function updateWorkload(Consultant $consultant)
     {
-        Gate::authorize('update', $consultant);
-
         $consultant->updateWorkloadMetrics();
 
         return back()->with('success', 'Workload metrics updated!');
@@ -169,8 +249,6 @@ class ConsultantController extends Controller
 
     public function toggleAvailability(Consultant $consultant)
     {
-        Gate::authorize('update', $consultant);
-
         $consultant->update([
             'accepts_new_applications' => !$consultant->accepts_new_applications
         ]);
@@ -179,4 +257,18 @@ class ConsultantController extends Controller
         
         return back()->with('success', "Consultant marked as {$status} for new applications!");
     }
+
+    /**
+ * Get available users for consultant creation
+ */
+public function getAvailableUsers()
+{
+    $users = User::where('user_type', 'consultant')
+        ->doesntHave('consultant')
+        ->select('id', 'name', 'email')
+        ->get();
+
+    return response()->json($users);
+}
+
 }
