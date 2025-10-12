@@ -218,6 +218,31 @@
                             <span class="ml-3">Documents</span>
                         </a>
                     </li>
+                    <!-- Region -->
+                    <li>
+                        <a href="{{ route('admin.regions.index') }}" 
+                        class="flex items-center p-2 rounded-lg text-white hover:bg-white/10 {{ request()->routeIs('admin.regions.*') ? 'bg-white/20' : '' }}">
+                            <!-- 🗺 Region Icon -->
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" 
+                                    d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7zM9 4v13m6-10v13" />
+                            </svg>
+                            <span class="ml-3">Regions</span>
+                        </a>
+                    </li>
+
+                    <!-- Postal Codes -->
+                    <li>
+                        <a href="{{ route('admin.postal-codes.index') }}" 
+                        class="flex items-center p-2 rounded-lg text-white hover:bg-white/10 {{ request()->routeIs('admin.postal-codes.*') ? 'bg-white/20' : '' }}">
+                            <!-- 📮 Postal Code Icon -->
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 8l9 6 9-6M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z" />
+                            </svg>
+                            <span class="ml-3">Postal Codes</span>
+                        </a>
+                    </li>
 
                     <!-- Reports -->
                     <li>

@@ -1,7 +1,5 @@
 <?php
-
 // app/Models/Consultant.php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -87,6 +85,11 @@ class Consultant extends Model
         return $this->hasMany(Inspection::class, 'consultant_id');
     }
 
+    public function regions()
+    {
+        return $this->belongsToMany(Region::class, 'consultant_regions');
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -111,10 +114,18 @@ class Consultant extends Model
                     ->orWhereNull('next_available_date');
     }
 
+    public function scopeByPostalCode($query, $postalCode)
+    {
+        $prefix = strtoupper(substr(str_replace(' ', '', $postalCode), 0, 3)); // Extract FSA
+        return $query->whereHas('regions.postalCodeRanges', function ($q) use ($prefix) {
+            $q->where('prefix', $prefix);
+        });
+    }
+
     // Helper methods
     public function isAvailable()
     {
-        return $this->employment_status === 'active' && 
+        return $this->employment_status === 'active' &&
                $this->accepts_new_applications &&
                $this->active_applications < $this->max_concurrent_applications;
     }

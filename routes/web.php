@@ -12,6 +12,9 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\RegionController;
+use App\Http\Controllers\PostalCodeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -231,6 +234,26 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
             Route::delete('/{consultant}', [ConsultantController::class, 'destroy'])->name('destroy');
             Route::post('/{consultant}/toggle-availability', [ConsultantController::class, 'toggleAvailability'])->name('toggle-availability');
             Route::post('/{consultant}/update-workload', [ConsultantController::class, 'updateWorkload'])->name('update-workload');
+
+        });
+
+         // Region Routes
+        Route::prefix('regions')->name('regions.')->group(function () {
+            Route::get('/', [RegionController::class, 'index'])->name('index');
+            Route::get('/all', [RegionController::class, 'getAllRegions'])->name('all'); // Changed this line
+            Route::post('/', [RegionController::class, 'store'])->name('store');
+            Route::get('/{region}/data', [RegionController::class, 'showData'])->name('data');
+            Route::put('/{region}', [RegionController::class, 'update'])->name('update');
+            Route::delete('/{region}', [RegionController::class, 'destroy'])->name('destroy');
+        });
+
+        // Postal Code Routes
+        Route::prefix('postal-codes')->name('postal-codes.')->group(function () {
+            Route::get('/', [PostalCodeController::class, 'index'])->name('index');
+            Route::post('/', [PostalCodeController::class, 'store'])->name('store');
+            Route::get('/{postalCode}/data', [PostalCodeController::class, 'showData'])->name('data');
+            Route::put('/{postalCode}', [PostalCodeController::class, 'update'])->name('update');
+            Route::delete('/{postalCode}', [PostalCodeController::class, 'destroy'])->name('destroy');
         });
  
 

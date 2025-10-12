@@ -199,23 +199,27 @@
                 </div>
             </div>
 
-            <!-- Top Consultants -->
+          <!-- Top Consultants -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Top Consultants</h3>
                 <div class="space-y-3">
                     @forelse($consultantPerformance as $performance)
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                                    {{ $performance->user->initials }}
+                        @if($performance->user) <!-- Add null check for $performance->user -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                        {{ $performance->user->initials ?? 'N/A' }}
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-900 dark:text-white text-sm">{{ $performance->user->name ?? 'Unknown' }}</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ $performance->total_assigned }} assigned</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="font-semibold text-gray-900 dark:text-white text-sm">{{ $performance->user->name }}</p>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ $performance->total_assigned }} assigned</p>
-                                </div>
+                                <span class="text-sm font-semibold text-green-600">{{ $performance->completed_this_month }}</span>
                             </div>
-                            <span class="text-sm font-semibold text-green-600">{{ $performance->completed_this_month }}</span>
-                        </div>
+                        @else
+                            <p class="text-sm text-gray-500 dark:text-gray-400">User data unavailable</p>
+                        @endif
                     @empty
                         <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No consultants available</p>
                     @endforelse

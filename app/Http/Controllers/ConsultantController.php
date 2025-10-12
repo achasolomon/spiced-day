@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Consultant;
 use App\Models\User;
+use App\Models\Region;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConsultantController extends Controller
 {
@@ -42,6 +44,7 @@ class ConsultantController extends Controller
     {
         $consultant->load([
             'user',
+            'regions', // Added to load regions
             'assignedApplications' => function ($query) {
                 $query->with('user')->latest()->limit(10);
             },
@@ -61,7 +64,7 @@ class ConsultantController extends Controller
      */
     public function getConsultantData(Consultant $consultant)
     {
-        $consultant->load(['user', 'assignedApplications', 'appointments', 'inspections']);
+        $consultant->load(['user', 'regions', 'assignedApplications', 'appointments', 'inspections']);
 
         // Get stats
         $stats = [
@@ -127,6 +130,12 @@ class ConsultantController extends Controller
             'approval_rate' => $consultant->approval_rate,
             'stats' => $stats,
             'recent_activity' => $recentActivity,
+            'regions' => $consultant->regions->map(function ($region) {
+                return [
+                    'id' => $region->id,
+                    'name' => $region->name,
+                ];
+            }),
         ]);
     }
 
@@ -139,49 +148,77 @@ class ConsultantController extends Controller
         return view('admin.consultants.create', compact('users'));
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id|unique:consultants,user_id',
-            'employee_id' => 'required|string|unique:consultants,employee_id',
-            'department' => 'nullable|string|max:255',
-            'position_title' => 'required|string|max:255',
-            'hire_date' => 'required|date',
-            'certifications' => 'nullable|array',
-            'specializations' => 'nullable|array',
-            'qualifications' => 'nullable|string',
-            'languages' => 'nullable|array',
-            'service_areas' => 'nullable|array',
-            'max_concurrent_applications' => 'required|integer|min:1|max:50',
-            'work_phone' => 'nullable|string|max:20',
-            'emergency_contact_name' => 'nullable|string|max:255',
-            'emergency_contact_phone' => 'nullable|string|max:20',
-            'can_approve_applications' => 'boolean',
-            'can_conduct_inspections' => 'boolean',
-            'can_view_all_applications' => 'boolean',
-            'bio' => 'nullable|string',
+    public function store(Request $request){
+    $validated = $request->validate([
+        'user_id' => 'required|exists:users,id',
+        'employee_id' => 'required|string|unique:consultants,employee_id',
+        'department' => 'nullable|string|max:255',
+        'position_title' => 'required|string|max:255',
+        'hire_date' => 'required|date',
+        'certifications' => 'nullable|array',
+        'certifications.*' => 'nullable|string|max:255',
+        'specializations' => 'nullable|array',
+        'specializations.*' => 'nullable|string|max:255',
+        'qualifications' => 'nullable|string',
+        'languages' => 'nullable|array',
+        'languages.*' => 'nullable|string|max:255',
+        'service_areas' => 'nullable|array',
+        'service_areas.*' => 'nullable|string|max:255',
+        'max_concurrent_applications' => 'required|integer|min:1|max:50',
+        'work_phone' => 'nullable|string|max:20',
+        'emergency_contact_name' => 'nullable|string|max:255',
+        'emergency_contact_phone' => 'nullable|string|max:20',
+        'can_approve_applications' => 'nullable|boolean',
+        'can_conduct_inspections' => 'nullable|boolean',
+        'can_view_all_applications' => 'nullable|boolean',
+        'bio' => 'nullable|string',
+        'internal_notes' => 'nullable|string',
+        'regions' => 'required|array|min:1',
+        'regions.*' => 'exists:regions,id',
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // Create the consultant
+        $consultant = Consultant::create([
+            'user_id' => $validated['user_id'],
+            'employee_id' => $validated['employee_id'],
+            'department' => $validated['department'],
+            'position_title' => $validated['position_title'],
+            'hire_date' => $validated['hire_date'],
+            'employment_status' => 'active',
+            'certifications' => array_filter($validated['certifications'] ?? [], fn($value) => !empty($value)),
+            'specializations' => array_filter($validated['specializations'] ?? [], fn($value) => !empty($value)),
+            'qualifications' => $validated['qualifications'] ?? null,
+            'languages' => array_filter($validated['languages'] ?? [], fn($value) => !empty($value)),
+            'service_areas' => array_filter($validated['service_areas'] ?? [], fn($value) => !empty($value)),
+            'max_concurrent_applications' => $validated['max_concurrent_applications'],
+            'accepts_new_applications' => true,
+            'work_phone' => $validated['work_phone'],
+            'emergency_contact_name' => $validated['emergency_contact_name'],
+            'emergency_contact_phone' => $validated['emergency_contact_phone'],
+            'can_approve_applications' => $request->has('can_approve_applications'),
+            'can_conduct_inspections' => $request->has('can_conduct_inspections') ? true : false,
+            'can_view_all_applications' => $request->has('can_view_all_applications'),
+            'bio' => $validated['bio'],
+            'internal_notes' => $validated['internal_notes'] ?? null,
         ]);
 
-        DB::beginTransaction();
-        try {
-            $consultant = Consultant::create(array_merge($validated, [
-                'employment_status' => 'active',
-                'accepts_new_applications' => true,
-            ]));
+        // IMPORTANT: Sync the regions to the pivot table
+        $consultant->regions()->sync($validated['regions']);
 
-            // Log the creation
-            \App\Models\AuditLog::log('consultant_created', $consultant, 'New consultant profile created');
+        // Log the creation
+        \App\Models\AuditLog::log('consultant_created', $consultant, 'New consultant profile created');
 
-            DB::commit();
+        DB::commit();
 
-            return redirect()->route('admin.consultants.index')
-                ->with('success', 'Consultant profile created successfully!');
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            \Log::error('Consultant creation failed', ['error' => $e->getMessage()]);
-            return back()->withInput()->with('error', 'Failed to create consultant profile. Please try again.');
-        }
+        return redirect()->route('admin.consultants.index')
+            ->with('success', 'Consultant created successfully!');
+    } catch (\Exception $e) {
+        DB::rollback();
+        Log::error('Consultant creation failed', ['error' => $e->getMessage()]);
+        return back()->withInput()->withErrors(['error' => 'Failed to create consultant. Please try again.']);
+    }
     }
 
     public function edit(Consultant $consultant)
@@ -189,8 +226,8 @@ class ConsultantController extends Controller
         return view('admin.consultants.edit', compact('consultant'));
     }
 
-    public function update(Request $request, Consultant $consultant)
-    {
+   public function update(Request $request, Consultant $consultant)
+{
         $validated = $request->validate([
             'employee_id' => 'required|string|unique:consultants,employee_id,' . $consultant->id,
             'department' => 'nullable|string|max:255',
@@ -198,10 +235,14 @@ class ConsultantController extends Controller
             'hire_date' => 'required|date',
             'employment_status' => 'required|in:active,inactive,on_leave,terminated',
             'certifications' => 'nullable|array',
+            'certifications.*' => 'nullable|string|max:255',
             'specializations' => 'nullable|array',
+            'specializations.*' => 'nullable|string|max:255',
             'qualifications' => 'nullable|string',
             'languages' => 'nullable|array',
+            'languages.*' => 'nullable|string|max:255',
             'service_areas' => 'nullable|array',
+            'service_areas.*' => 'nullable|string|max:255',
             'max_concurrent_applications' => 'required|integer|min:1|max:50',
             'accepts_new_applications' => 'boolean',
             'work_phone' => 'nullable|string|max:20',
@@ -212,19 +253,54 @@ class ConsultantController extends Controller
             'can_view_all_applications' => 'boolean',
             'bio' => 'nullable|string',
             'internal_notes' => 'nullable|string',
+            'regions' => 'required|array|min:1',
+            'regions.*' => 'exists:regions,id',
         ]);
 
-        $oldValues = $consultant->only(array_keys($validated));
-        $consultant->update($validated);
+        DB::beginTransaction();
+        try {
+            $oldValues = $consultant->only(array_keys($validated));
+            $consultant->update([
+                'employee_id' => $validated['employee_id'],
+                'department' => $validated['department'] ?? null,
+                'position_title' => $validated['position_title'],
+                'hire_date' => $validated['hire_date'],
+                'employment_status' => $validated['employment_status'],
+                'certifications' => array_filter($validated['certifications'] ?? [], fn($value) => !empty($value)),
+                'specializations' => array_filter($validated['specializations'] ?? [], fn($value) => !empty($value)),
+                'qualifications' => $validated['qualifications'] ?? null,
+                'languages' => array_filter($validated['languages'] ?? [], fn($value) => !empty($value)),
+                'service_areas' => array_filter($validated['service_areas'] ?? [], fn($value) => !empty($value)),
+                'max_concurrent_applications' => $validated['max_concurrent_applications'],
+                'accepts_new_applications' => $validated['accepts_new_applications'] ?? false,
+                'work_phone' => $validated['work_phone'] ?? null,
+                'emergency_contact_name' => $validated['emergency_contact_name'] ?? null,
+                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+                'can_approve_applications' => $validated['can_approve_applications'] ?? false,
+                'can_conduct_inspections' => $validated['can_conduct_inspections'] ?? false,
+                'can_view_all_applications' => $validated['can_view_all_applications'] ?? false,
+                'bio' => $validated['bio'] ?? null,
+                'internal_notes' => $validated['internal_notes'] ?? null,
+            ]);
 
-        // Log the update
-        \App\Models\AuditLog::log('consultant_updated', $consultant, 'Consultant profile updated', [
-            'old_values' => $oldValues,
-            'new_values' => $validated
-        ]);
+            // Sync regions
+            $consultant->regions()->sync($validated['regions']);
 
-        return redirect()->route('admin.consultants.index')
-            ->with('success', 'Consultant profile updated successfully!');
+            // Log the update
+            \App\Models\AuditLog::log('consultant_updated', $consultant, 'Consultant profile updated', [
+                'old_values' => $oldValues,
+                'new_values' => $validated
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('admin.consultants.index')
+                ->with('success', 'Consultant profile updated successfully!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Consultant update failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->withInput()->withErrors(['error' => 'Failed to update consultant profile. Please try again.'])->with('editConsultantId', $consultant->id);
+        }
     }
 
     public function destroy(Consultant $consultant)
@@ -259,16 +335,25 @@ class ConsultantController extends Controller
     }
 
     /**
- * Get available users for consultant creation
- */
-public function getAvailableUsers()
-{
-    $users = User::where('user_type', 'consultant')
-        ->doesntHave('consultant')
-        ->select('id', 'name', 'email')
-        ->get();
+     * Get available users for consultant creation
+     */
+    public function getAvailableUsers()
+    {
+        $users = User::where('user_type', 'consultant')
+            ->doesntHave('consultant')
+            ->select('id', 'name', 'email')
+            ->get();
 
-    return response()->json($users);
-}
+        return response()->json($users);
+    }
+
+    /**
+     * Get all regions for region selection
+     */
+    public function getRegions()
+    {
+        $regions = Region::select('id', 'name')->get();
+        return response()->json($regions);
+    }
 
 }

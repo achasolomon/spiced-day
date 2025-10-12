@@ -6,6 +6,7 @@ use App\Models\Application;
 use App\Enums\ApplicationStatus;
 use App\Models\User;
 use App\Services\ApplicationStatusService;
+use App\Models\PostalCodeRange;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -103,7 +104,7 @@ class ApplicationController extends Controller
             'address_line_1' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
             'city' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
             'province' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
-            'postal_code' => $isDraft ? 'nullable|string|max:10' : 'required|string|max:10',
+            'postal_code' => $isDraft ? 'nullable|string|max:10' : ['required', 'string', 'max:10', 'regex:/^[A-Z]\d[A-Z] ?\d[A-Z]\d$/i'],
             'childcare_level' => 'nullable|string|max:255',
             'referred_by' => 'nullable|string|max:255',
             'languages_spoken' => 'nullable|string',
@@ -141,20 +142,26 @@ class ApplicationController extends Controller
             }
 
             DB::beginTransaction();
-
             $application = auth()->user()->applications()->create($validated);
             
-            Log::info('Application created', ['id' => $application->id]);
+            if (!$isDraft) {
+                // Auto-assign consultant based on postal code
+                $consultant = $this->assignConsultantByPostalCode($application->postal_code);
+                if ($consultant) {
+                    $application->update(['consultant_id' => $consultant->user_id]);
+                    Log::info('Consultant assigned', ['application_id' => $application->id, 'consultant_id' => $consultant->user_id]);
+                    \App\Models\AuditLog::log('consultant_assigned', $application, "Consultant assigned to application: {$consultant->user->name}");
+                } else {
+                    Log::warning('No available consultant found for postal code', ['postal_code' => $application->postal_code]);
+                    \App\Models\AuditLog::log('consultant_assignment_failed', $application, "No consultant available for postal code: {$application->postal_code}");
+                }
+            }
             
             $application->updateCompletionPercentage();
-
             if (!$isDraft) {
-                // Don't use statusService for new submissions to avoid duplicate notifications
-                // The notification will be sent automatically via the Application model observer
+                // Trigger notification via observer (already in your model)
             }
-
             DB::commit();
-
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
@@ -163,14 +170,11 @@ class ApplicationController extends Controller
                     'redirect' => route('applicant.applications.show', $application)
                 ], 200);
             }
-
             return redirect()
                 ->route('applicant.applications.show', $application)
                 ->with('success', $isDraft ? 'Draft saved successfully!' : 'Application created successfully!');
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation failed', ['errors' => $e->errors()]);
-            
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -178,28 +182,21 @@ class ApplicationController extends Controller
                     'errors' => $e->errors()
                 ], 422);
             }
-            
             return back()->withErrors($e->errors())->withInput();
-            
         } catch (\Exception $e) {
             DB::rollback();
-            
             Log::error('Application creation failed', [
                 'message' => $e->getMessage(),
                 'line' => $e->getLine(),
                 'file' => $e->getFile()
             ]);
-            
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to save: ' . $e->getMessage()
                 ], 500);
             }
-            
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to create application: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to create application: ' . $e->getMessage());
         }
     }
     public function update(Request $request, Application $application)
@@ -317,34 +314,77 @@ class ApplicationController extends Controller
         return view('applicant.applications.edit', compact('application'));
     }
 
-    public function submit(Application $application)
+   public function submit(Application $application)
     {
         if ($application->user_id !== auth()->id()) {
             abort(403);
         }
-
         if (!$application->canBeSubmitted()) {
             return back()->with('error', 'Please complete all required fields before submitting.');
         }
-
         DB::beginTransaction();
         try {
+            // Auto-assign consultant if none assigned (e.g., draft to submitted)
+            if (!$application->consultant_id) {
+                $consultant = $this->assignConsultantByPostalCode($application->postal_code);
+                if ($consultant) {
+                    $application->update(['consultant_id' => $consultant->user_id]);
+                    Log::info('Consultant assigned', ['application_id' => $application->id, 'consultant_id' => $consultant->user_id]);
+                    \App\Models\AuditLog::log('consultant_assigned', $application, "Consultant assigned to application: {$consultant->user->name}");
+                } else {
+                    Log::warning('No available consultant found for postal code', ['postal_code' => $application->postal_code]);
+                    \App\Models\AuditLog::log('consultant_assignment_failed', $application, "No consultant available for postal code: {$application->postal_code}");
+                }
+            }
+
             $this->statusService->transitionTo(
                 $application,
                 ApplicationStatus::SUBMITTED,
                 "Application submitted by applicant"
             );
-
             DB::commit();
-
             return redirect()
                 ->route('applicant.dashboard')
                 ->with('success', 'Application submitted successfully! We will contact you soon.');
-
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('Application submission failed', ['error' => $e->getMessage()]);
             return back()->with('error', 'Failed to submit application. Please try again.');
         }
+    }
+
+    /**
+     * Assign a consultant based on the application's postal code.
+     *
+     * @param string $postalCode
+     * @return Consultant|null
+     */
+    protected function assignConsultantByPostalCode($postalCode)
+    {
+        // Normalize postal code and extract FSA (first 3 characters)
+        $prefix = strtoupper(substr(str_replace(' ', '', $postalCode), 0, 3));
+        
+        // Find region by postal code prefix
+        $region = PostalCodeRange::where('prefix', $prefix)->first();
+        
+        if (!$region) {
+            Log::warning('No region found for postal code prefix', ['prefix' => $prefix]);
+            return null;
+        }
+        
+        // Find available consultants in the region
+        $consultant = Consultant::acceptingApplications()
+            ->byPostalCode($postalCode)
+            ->where('active_applications', '<', \DB::raw('max_concurrent_applications'))
+            ->orderBy('active_applications', 'asc') // Prefer least busy consultant
+            ->first();
+        
+        if ($consultant) {
+            // Update consultant's workload metrics
+            $consultant->updateWorkloadMetrics();
+        }
+        
+        return $consultant;
     }
 
     // Consultant actions

@@ -9,10 +9,10 @@ use App\Models\Appointment;
 use App\Models\Document;
 use App\Models\Inspection;
 use App\Models\Consultant;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-
 class ReportController extends Controller
 {
     public function index()
@@ -146,4 +146,298 @@ class ReportController extends Controller
 
         return round(($approved / $total) * 100, 1);
     }
+
+        /**
+     * Admin reports dashboard
+     */
+    public function adminIndex(Request $request)
+    {
+        $dateFrom = $request->date_from ? Carbon::parse($request->date_from) : now()->subMonths(3)->startOfMonth();
+        $dateTo = $request->date_to ? Carbon::parse($request->date_to) : now()->endOfMonth();
+
+        // Applications Statistics
+        $applicationStats = [
+            'total' => Application::whereBetween('created_at', [$dateFrom, $dateTo])->count(),
+            'submitted' => Application::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->where('status', 'submitted')->count(),
+            'under_review' => Application::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->where('status', 'under_review')->count(),
+            'approved' => Application::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->where('status', 'approved')->count(),
+            'rejected' => Application::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->where('status', 'rejected')->count(),
+        ];
+
+        // Monthly application trend
+        $monthlyApplications = Application::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, count(*) as count')
+            ->whereBetween('created_at', [$dateFrom, $dateTo])
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        // Inspections Statistics
+        $inspectionStats = [
+            'total' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])->count(),
+            'passed' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+                ->where('overall_result', 'pass')->count(),
+            'failed' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+                ->where('overall_result', 'fail')->count(),
+            'conditional' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+                ->where('overall_result', 'conditional_pass')->count(),
+            'avg_score' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+                ->avg('overall_score') ?? 0,
+        ];
+
+        // Documents Statistics
+        $documentStats = [
+            'total' => Document::whereBetween('created_at', [$dateFrom, $dateTo])->count(),
+            'pending' => Document::whereIn('status', ['uploaded', 'under_review'])->count(),
+            'approved' => Document::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->where('status', 'approved')->count(),
+            'rejected' => Document::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->where('status', 'rejected')->count(),
+            'expired' => Document::where('expires', true)
+                ->where('expiry_date', '<', now())->count(),
+        ];
+
+        // Appointments Statistics
+        $appointmentStats = [
+            'total' => Appointment::whereBetween('scheduled_at', [$dateFrom, $dateTo])->count(),
+            'completed' => Appointment::whereBetween('scheduled_at', [$dateFrom, $dateTo])
+                ->where('status', 'completed')->count(),
+            'cancelled' => Appointment::whereBetween('scheduled_at', [$dateFrom, $dateTo])
+                ->where('status', 'cancelled')->count(),
+            'upcoming' => Appointment::where('scheduled_at', '>', now())
+                ->whereIn('status', ['scheduled', 'confirmed'])->count(),
+        ];
+
+        // Consultant Performance
+        $consultantPerformance = \App\Models\User::consultants()
+            ->withCount([
+                'assignedApplications as total_applications',
+                'assignedApplications as completed_applications' => function($query) use ($dateFrom, $dateTo) {
+                    $query->whereIn('status', ['approved', 'rejected'])
+                        ->whereBetween('updated_at', [$dateFrom, $dateTo]);
+                },
+                'inspections as total_inspections' => function($query) use ($dateFrom, $dateTo) {
+                    $query->whereBetween('conducted_at', [$dateFrom, $dateTo]);
+                }
+            ])
+            ->having('completed_applications', '>', 0)
+            ->orderByDesc('completed_applications')
+            ->take(10)
+            ->get();
+
+        // Status Distribution
+        $statusDistribution = Application::selectRaw('status, count(*) as count')
+            ->whereBetween('created_at', [$dateFrom, $dateTo])
+            ->groupBy('status')
+            ->get();
+
+        // Processing Time Analysis
+        $avgProcessingTime = $this->calculateAverageProcessingTime(
+            Application::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->whereIn('status', ['approved', 'rejected'])
+                ->get()
+        );
+
+        return view('admin.reports.index', compact(
+            'applicationStats',
+            'monthlyApplications',
+            'inspectionStats',
+            'documentStats',
+            'appointmentStats',
+            'consultantPerformance',
+            'statusDistribution',
+            'avgProcessingTime',
+            'dateFrom',
+            'dateTo'
+        ));
+    }
+
+/**
+ * Applications detailed report
+ */
+public function applicationsReport(Request $request)
+{
+    $dateFrom = $request->date_from ? Carbon::parse($request->date_from) : now()->subMonths(3)->startOfMonth();
+    $dateTo = $request->date_to ? Carbon::parse($request->date_to) : now()->endOfMonth();
+
+    $applications = Application::with(['user', 'consultant'])
+        ->whereBetween('created_at', [$dateFrom, $dateTo])
+        ->when($request->status, function ($q, $status) {
+            return $q->where('status', $status);
+        })
+        ->when($request->consultant_id, function ($q, $consultantId) {
+            return $q->where('consultant_id', $consultantId);
+        })
+        ->orderBy('created_at', 'desc')
+        ->paginate(50);
+
+    $stats = [
+        'total' => $applications->total(),
+        'by_status' => Application::whereBetween('created_at', [$dateFrom, $dateTo])
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status'),
+        'approval_rate' => $applications->where('status', 'approved')->count() / max($applications->total(), 1) * 100,
+        'avg_processing_time' => $this->calculateAverageProcessingTime(
+            Application::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->whereIn('status', ['approved', 'rejected'])
+                ->get()
+        ),
+    ];
+
+    $consultants = User::consultants()->orderBy('name')->get();
+
+    return view('admin.reports.applications', compact('applications', 'stats', 'dateFrom', 'dateTo', 'consultants'));
+}
+
+/**
+ * Consultants performance report
+ */
+public function consultantsReport(Request $request)
+{
+    $dateFrom = $request->date_from ? Carbon::parse($request->date_from) : now()->subMonths(3)->startOfMonth();
+    $dateTo = $request->date_to ? Carbon::parse($request->date_to) : now()->endOfMonth();
+
+    $consultants = User::consultants()
+        ->with('consultant')
+        ->withCount([
+            'assignedApplications as total_applications',
+            'assignedApplications as completed_applications' => function($query) use ($dateFrom, $dateTo) {
+                $query->whereIn('status', ['approved', 'rejected'])
+                      ->whereBetween('updated_at', [$dateFrom, $dateTo]);
+            },
+            'inspections as total_inspections' => function($query) use ($dateFrom, $dateTo) {
+                $query->whereBetween('conducted_at', [$dateFrom, $dateTo]);
+            },
+            'consultantAppointments as total_appointments' => function($query) use ($dateFrom, $dateTo) {
+                $query->whereBetween('scheduled_at', [$dateFrom, $dateTo]);
+            }
+        ])
+        ->get();
+
+    $performanceData = $consultants->map(function($consultant) {
+        return [
+            'consultant' => $consultant,
+            'applications_handled' => $consultant->total_applications,
+            'completed_applications' => $consultant->completed_applications,
+            'inspections_completed' => $consultant->total_inspections,
+            'appointments_scheduled' => $consultant->total_appointments,
+            'avg_completion_time' => $this->getConsultantAvgTime($consultant),
+            'approval_rate' => $this->getConsultantApprovalRate($consultant),
+        ];
+    });
+
+    return view('admin.reports.consultants', compact('performanceData', 'dateFrom', 'dateTo'));
+}
+
+/**
+ * Documents report
+ */
+public function documentsReport(Request $request)
+{
+    $dateFrom = $request->date_from ? Carbon::parse($request->date_from) : now()->subMonths(3)->startOfMonth();
+    $dateTo = $request->date_to ? Carbon::parse($request->date_to) : now()->endOfMonth();
+
+    $documents = Document::with(['application.user', 'uploadedBy', 'reviewedBy'])
+        ->whereBetween('created_at', [$dateFrom, $dateTo])
+        ->when($request->status, function ($q, $status) {
+            return $q->where('status', $status);
+        })
+        ->when($request->category, function ($q, $category) {
+            return $q->where('category', $category);
+        })
+        ->orderBy('created_at', 'desc')
+        ->paginate(50);
+
+    $stats = [
+        'total' => $documents->total(),
+        'by_status' => Document::whereBetween('created_at', [$dateFrom, $dateTo])
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status'),
+        'by_category' => Document::whereBetween('created_at', [$dateFrom, $dateTo])
+            ->selectRaw('category, count(*) as count')
+            ->groupBy('category')
+            ->pluck('count', 'category'),
+        'approval_rate' => $documents->where('status', 'approved')->count() / max($documents->total(), 1) * 100,
+        'expired_count' => Document::where('expires', true)
+            ->where('expiry_date', '<', now())
+            ->count(),
+        'avg_review_time' => $this->calculateAvgDocumentReviewTime(
+            Document::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->whereNotNull('reviewed_at')
+                ->get()
+        ),
+    ];
+
+    return view('admin.reports.documents', compact('documents', 'stats', 'dateFrom', 'dateTo'));
+}
+
+/**
+ * Inspections report
+ */
+public function inspectionsReport(Request $request)
+{
+    $dateFrom = $request->date_from ? Carbon::parse($request->date_from) : now()->subMonths(3)->startOfMonth();
+    $dateTo = $request->date_to ? Carbon::parse($request->date_to) : now()->endOfMonth();
+
+    $inspections = Inspection::with(['application.user', 'consultant'])
+        ->whereBetween('conducted_at', [$dateFrom, $dateTo])
+        ->when($request->type, function ($q, $type) {
+            return $q->where('type', $type);
+        })
+        ->when($request->result, function ($q, $result) {
+            return $q->where('overall_result', $result);
+        })
+        ->when($request->consultant_id, function ($q, $consultantId) {
+            return $q->where('consultant_id', $consultantId);
+        })
+        ->orderBy('conducted_at', 'desc')
+        ->paginate(50);
+
+    $stats = [
+        'total' => $inspections->total(),
+        'by_result' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+            ->selectRaw('overall_result, count(*) as count')
+            ->groupBy('overall_result')
+            ->pluck('count', 'overall_result'),
+        'by_type' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+            ->selectRaw('type, count(*) as count')
+            ->groupBy('type')
+            ->pluck('count', 'type'),
+        'pass_rate' => $inspections->whereIn('overall_result', ['pass', 'conditional_pass'])->count() / max($inspections->total(), 1) * 100,
+        'avg_score' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+            ->avg('overall_score') ?? 0,
+        'requires_reinspection' => Inspection::whereBetween('conducted_at', [$dateFrom, $dateTo])
+            ->where('requires_reinspection', true)
+            ->count(),
+    ];
+
+    $consultants = User::consultants()->orderBy('name')->get();
+
+    return view('admin.reports.inspections', compact('inspections', 'stats', 'dateFrom', 'dateTo', 'consultants'));
+}
+
+/**
+ * Calculate average document review time
+ */
+private function calculateAvgDocumentReviewTime($documents)
+{
+    if ($documents->isEmpty()) {
+        return 0;
+    }
+
+    $totalHours = 0;
+    foreach ($documents as $doc) {
+        if ($doc->reviewed_at) {
+            $totalHours += $doc->created_at->diffInHours($doc->reviewed_at);
+        }
+    }
+
+    return round($totalHours / $documents->count(), 1);
+}
+
 }

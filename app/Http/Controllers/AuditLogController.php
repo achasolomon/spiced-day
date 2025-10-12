@@ -1,79 +1,196 @@
 <?php
 
-// app/Http/Controllers/AuditLogController.php
-
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\User;
+use App\Models\Application;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class AuditLogController extends Controller
 {
+    /**
+     * Display audit logs index
+     */
     public function index(Request $request)
     {
-        Gate::authorize('viewAny', AuditLog::class);
-
-        $query = AuditLog::with(['user', 'application'])
-            ->when($request->user_id, function ($q, $userId) {
-                return $q->where('user_id', $userId);
+        $query = AuditLog::with(['user', 'model'])
+            ->when($request->search, function ($q, $search) {
+                return $q->where('description', 'like', "%{$search}%")
+                         ->orWhere('action', 'like', "%{$search}%");
             })
             ->when($request->action, function ($q, $action) {
                 return $q->where('action', $action);
             })
-            ->when($request->category, function ($q, $category) {
-                return $q->where('category', $category);
+            ->when($request->user_id, function ($q, $userId) {
+                return $q->where('user_id', $userId);
             })
-            ->when($request->severity, function ($q, $severity) {
-                return $q->where('severity', $severity);
+            ->when($request->auditable_type, function ($q, $type) {
+                return $q->where('auditable_type', $type);
             })
             ->when($request->date_from, function ($q, $dateFrom) {
-                return $q->where('created_at', '>=', $dateFrom);
+                return $q->whereDate('created_at', '>=', $dateFrom);
             })
             ->when($request->date_to, function ($q, $dateTo) {
-                return $q->where('created_at', '<=', $dateTo . ' 23:59:59');
-            })
-            ->when($request->search, function ($q, $search) {
-                return $q->where(function ($query) use ($search) {
-                    $query->where('description', 'like', "%{$search}%")
-                          ->orWhere('action', 'like', "%{$search}%");
-                });
+                return $q->whereDate('created_at', '<=', $dateTo);
             });
 
-        $auditLogs = $query->latest()->paginate(25);
+        // Sorting
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        
+        $auditLogs = $query->orderBy($sortBy, $sortOrder)->paginate(50);
 
-        return view('audit-logs.index', compact('auditLogs'));
+        // Get users for filter
+        $users = User::orderBy('name')->get();
+
+        // Get available actions
+        $actions = AuditLog::select('action')
+            ->distinct()
+            ->orderBy('action')
+            ->pluck('action');
+
+        // Statistics
+        $stats = [
+            'total' => AuditLog::count(),
+            'today' => AuditLog::whereDate('created_at', today())->count(),
+            'this_week' => AuditLog::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'this_month' => AuditLog::whereMonth('created_at', now()->month)->count(),
+        ];
+
+        return view('admin.audit-logs.index', compact('auditLogs', 'users', 'actions', 'stats'));
     }
 
+    /**
+     * Display a specific audit log entry
+     */
     public function show(AuditLog $auditLog)
     {
-        Gate::authorize('view', $auditLog);
-
-        $auditLog->load(['user', 'application']);
-
-        return view('audit-logs.show', compact('auditLog'));
+        $auditLog->load(['user', 'auditable']);
+        
+        return view('admin.audit-logs.show', compact('auditLog'));
     }
 
+    /**
+     * Display user activity
+     */
+    public function userActivity(User $user, Request $request)
+    {
+        $dateFrom = $request->date_from ?? now()->subMonth();
+        $dateTo = $request->date_to ?? now();
+
+        $activities = AuditLog::with('auditable')
+            ->where('user_id', $user->id)
+            ->whereBetween('created_at', [$dateFrom, $dateTo])
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        $stats = [
+            'total_actions' => AuditLog::where('user_id', $user->id)->count(),
+            'actions_today' => AuditLog::where('user_id', $user->id)
+                ->whereDate('created_at', today())->count(),
+            'actions_this_month' => AuditLog::where('user_id', $user->id)
+                ->whereMonth('created_at', now()->month)->count(),
+        ];
+
+        return view('admin.audit-logs.user-activity', compact('user', 'activities', 'stats', 'dateFrom', 'dateTo'));
+    }
+
+    /**
+     * Display application activity
+     */
+    public function applicationActivity(Application $application)
+    {
+        $activities = AuditLog::where('auditable_type', 'App\Models\Application')
+            ->where('auditable_id', $application->id)
+            ->orWhere(function($query) use ($application) {
+                $query->where('auditable_type', 'App\Models\Document')
+                      ->whereHas('auditable', function($q) use ($application) {
+                          $q->where('application_id', $application->id);
+                      });
+            })
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        return view('admin.audit-logs.application-activity', compact('application', 'activities'));
+    }
+
+    /**
+     * Export audit logs
+     */
     public function export(Request $request)
     {
-        Gate::authorize('export', AuditLog::class);
-
-        // This would typically use a job for large exports
-        $query = AuditLog::with(['user', 'application'])
+        $query = AuditLog::with(['user', 'auditable'])
             ->when($request->date_from, function ($q, $dateFrom) {
-                return $q->where('created_at', '>=', $dateFrom);
+                return $q->whereDate('created_at', '>=', $dateFrom);
             })
             ->when($request->date_to, function ($q, $dateTo) {
-                return $q->where('created_at', '<=', $dateTo . ' 23:59:59');
+                return $q->whereDate('created_at', '<=', $dateTo);
             });
 
-        // Log the export action
-        AuditLog::log('audit_export', new \stdClass(), 'Audit logs exported', [
-            'filters' => $request->only(['date_from', 'date_to', 'category', 'severity']),
-            'record_count' => $query->count()
+        $logs = $query->orderBy('created_at', 'desc')->get();
+
+        $filename = 'audit_logs_' . now()->format('Y-m-d_His') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($logs) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'ID',
+                'Action',
+                'Description',
+                'User',
+                'User Email',
+                'Auditable Type',
+                'Auditable ID',
+                'IP Address',
+                'User Agent',
+                'Timestamp',
+            ]);
+
+            // Add data
+            foreach ($logs as $log) {
+                fputcsv($file, [
+                    $log->id,
+                    $log->action,
+                    $log->description,
+                    $log->user->name ?? 'N/A',
+                    $log->user->email ?? 'N/A',
+                    class_basename($log->auditable_type ?? ''),
+                    $log->auditable_id ?? '',
+                    $log->ip_address ?? '',
+                    $log->user_agent ?? '',
+                    $log->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Clear old audit logs
+     */
+    public function clearOld(Request $request)
+    {
+        $validated = $request->validate([
+            'days' => 'required|integer|min:30|max:365',
         ]);
 
-        // Return CSV download or redirect to job status page
-        return back()->with('success', 'Export has been queued and will be available shortly.');
+        $cutoffDate = now()->subDays($validated['days']);
+        
+        $deletedCount = AuditLog::where('created_at', '<', $cutoffDate)->delete();
+
+        return back()->with('success', "Successfully deleted {$deletedCount} audit log entries older than {$validated['days']} days.");
     }
 }

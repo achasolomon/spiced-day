@@ -1,28 +1,41 @@
 <!-- resources/views/components/consultants/edit-modal.blade.php -->
-
 <div 
     x-data="{
         show: false,
         loading: false,
         consultant: null,
+        regions: [],
+        selectedRegions: [],
         async fetchConsultant(consultantId) {
             this.loading = true;
             try {
                 const response = await fetch(`/admin/consultants/${consultantId}/data`);
                 this.consultant = await response.json();
+                this.selectedRegions = this.consultant.regions.map(r => r.id);
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error fetching consultant:', error);
             } finally {
                 this.loading = false;
+            }
+        },
+        async fetchRegions() {
+            try {
+                const response = await fetch('/admin/regions/all'); 
+                this.regions = await response.json();
+            } catch (error) {
+                console.error('Error fetching regions:', error);
             }
         },
         open(consultantId) {
             this.show = true;
             this.fetchConsultant(consultantId);
+            this.fetchRegions();
         },
         close() {
             this.show = false;
             this.consultant = null;
+            this.regions = [];
+            this.selectedRegions = [];
         }
     }"
     @open-edit-consultant-modal.window="open($event.detail.consultantId)"
@@ -47,7 +60,6 @@
 
             <!-- Modal Content -->
             <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full p-6" @click.stop>
-                
                 <!-- Loading State -->
                 <template x-if="loading">
                     <div class="text-center py-12">
@@ -99,7 +111,139 @@
                             @method('PUT')
 
                             <div class="space-y-4 max-h-[65vh] overflow-y-auto px-1">
+                                <!-- Regions Selection -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Assigned Regions <span class="text-red-500">*</span>
+                                </label>
                                 
+                                <!-- Selected Regions Display (Tags) -->
+                                <div x-show="selectedRegions.length > 0" class="flex flex-wrap gap-2 mb-3">
+                                    <template x-for="regionId in selectedRegions" :key="regionId">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 text-sm rounded-full border border-orange-200 dark:border-orange-700">
+                                            <span x-text="regions.find(r => r.id == regionId)?.name || 'Region ' + regionId"></span>
+                                            <button 
+                                                type="button"
+                                                @click="selectedRegions = selectedRegions.filter(id => id != regionId)"
+                                                class="hover:bg-orange-200 dark:hover:bg-orange-800 rounded-full p-0.5 transition"
+                                            >
+                                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    </template>
+                                </div>
+
+                                <!-- Dropdown Button -->
+                                <div x-data="{ open: false, search: '' }" class="relative">
+                                    <button 
+                                        type="button"
+                                        @click="open = !open"
+                                        @click.away="open = false"
+                                        class="w-full px-4 py-2.5 text-left text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-600 transition"
+                                    >
+                                        <span x-text="selectedRegions.length > 0 ? `${selectedRegions.length} region(s) selected` : 'Select regions...'" 
+                                            class="text-gray-700 dark:text-gray-300"
+                                            :class="selectedRegions.length === 0 && 'text-gray-500 dark:text-gray-400'">
+                                        </span>
+                                        <svg class="w-5 h-5 text-gray-400 transition-transform" :class="open && 'rotate-180'" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+
+                                    <!-- Dropdown Content -->
+                                    <div 
+                                        x-show="open"
+                                        x-transition:enter="transition ease-out duration-200"
+                                        x-transition:enter-start="opacity-0 scale-95"
+                                        x-transition:enter-end="opacity-100 scale-100"
+                                        x-transition:leave="transition ease-in duration-150"
+                                        x-transition:leave-start="opacity-100 scale-100"
+                                        x-transition:leave-end="opacity-0 scale-95"
+                                        class="absolute z-10 w-full mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden"
+                                        style="display: none;"
+                                    >
+                                        <!-- Search Box -->
+                                        <div class="p-3 border-b border-gray-200 dark:border-gray-600">
+                                            <div class="relative">
+                                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <input 
+                                                    type="text"
+                                                    x-model="search"
+                                                    placeholder="Search regions..."
+                                                    class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-600 dark:text-white"
+                                                    @click.stop
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <!-- Regions List -->
+                                        <div class="max-h-60 overflow-y-auto">
+                                            <template x-for="region in regions.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))" :key="region.id">
+                                                <label 
+                                                    class="flex items-center px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer transition"
+                                                    :class="selectedRegions.includes(region.id) && 'bg-orange-50 dark:bg-orange-900/20'"
+                                                >
+                                                    <input 
+                                                        type="checkbox"
+                                                        :value="region.id"
+                                                        x-model="selectedRegions"
+                                                        class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                                    >
+                                                    <span class="ml-3 text-sm text-gray-700 dark:text-gray-200" x-text="region.name"></span>
+                                                    <svg 
+                                                        x-show="selectedRegions.includes(region.id)"
+                                                        class="ml-auto w-5 h-5 text-orange-600 dark:text-orange-400"
+                                                        fill="currentColor" 
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                </label>
+                                            </template>
+                                            
+                                            <!-- No Results -->
+                                            <div 
+                                                x-show="search && regions.filter(r => r.name.toLowerCase().includes(search.toLowerCase())).length === 0"
+                                                class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
+                                            >
+                                                No regions found matching "<span x-text="search"></span>"
+                                            </div>
+                                        </div>
+
+                                        <!-- Footer Actions -->
+                                        <div class="p-3 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between bg-gray-50 dark:bg-gray-800">
+                                            <button 
+                                                type="button"
+                                                @click="selectedRegions = []"
+                                                class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
+                                            >
+                                                Clear all
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                @click="selectedRegions = regions.map(r => r.id)"
+                                                class="text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium"
+                                            >
+                                                Select all
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Hidden inputs for form submission -->
+                                <template x-for="regionId in selectedRegions" :key="regionId">
+                                    <input type="hidden" name="regions[]" :value="regionId">
+                                </template>
+
+                                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    Select one or more regions this consultant will cover
+                                </p>
+                            </div>
+
                                 <!-- Basic Information -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -221,6 +365,18 @@
                                     </div>
                                 </div>
 
+                                <!-- Qualifications -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Qualifications</label>
+                                    <textarea 
+                                        name="qualifications" 
+                                        rows="3"
+                                        x-text="consultant.qualifications"
+                                        placeholder="Education, degrees, professional qualifications..."
+                                        class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                                    ></textarea>
+                                </div>
+
                                 <!-- Bio -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bio</label>
@@ -243,7 +399,6 @@
                                         class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
                                     ></textarea>
                                 </div>
-
                                 <!-- Permissions -->
                                 <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
                                     <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Permissions</h4>

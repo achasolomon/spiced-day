@@ -441,4 +441,90 @@ class DocumentController extends Controller
 
         return back()->with('error', 'Failed to create ZIP file');
     }
+
+    /**
+ * Admin documents management page
+ */
+public function adminIndex(Request $request)
+{
+    $query = Document::with(['application.user', 'uploadedBy', 'reviewedBy'])
+        ->latest();
+
+    // Filter by status
+    if ($request->has('status') && $request->status !== '') {
+        $query->where('status', $request->status);
+    }
+
+    // Filter by category
+    if ($request->has('category') && $request->category !== '') {
+        $query->where('category', $request->category);
+    }
+
+    // Search by document name or application number
+    if ($request->has('search') && $request->search !== '') {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('original_filename', 'like', "%{$search}%")
+              ->orWhereHas('application', function($appQuery) use ($search) {
+                  $appQuery->where('application_number', 'like', "%{$search}%")
+                           ->orWhereHas('user', function($userQuery) use ($search) {
+                               $userQuery->where('name', 'like', "%{$search}%");
+                           });
+              });
+        });
+    }
+
+    // Filter by date range
+    if ($request->has('date_from') && $request->date_from !== '') {
+        $query->whereDate('created_at', '>=', $request->date_from);
+    }
+    if ($request->has('date_to') && $request->date_to !== '') {
+        $query->whereDate('created_at', '<=', $request->date_to);
+    }
+
+    // Filter expired documents
+    if ($request->has('expired') && $request->expired === '1') {
+        $query->where('expires', true)
+              ->where('expiry_date', '<', now());
+    }
+
+    $documents = $query->paginate(20)->withQueryString();
+
+    // Statistics
+    $stats = [
+        'total' => Document::count(),
+        'uploaded' => Document::where('status', 'uploaded')->count(),
+        'under_review' => Document::where('status', 'under_review')->count(),
+        'approved' => Document::where('status', 'approved')->count(),
+        'rejected' => Document::where('status', 'rejected')->count(),
+        'expired' => Document::where('expires', true)
+                            ->where('expiry_date', '<', now())
+                            ->count(),
+    ];
+
+    $categories = [
+        'criminal_record_check' => 'Criminal Record Check',
+        'cpr_first_aid' => 'CPR & First Aid Certificate',
+        'educator_certificate' => 'Educator Certificate',
+        'home_insurance' => 'Home Insurance',
+        'car_insurance' => 'Vehicle Insurance',
+        'liability_insurance' => 'Liability Insurance',
+        'statement_of_disclosure' => 'Statement of Disclosure',
+        'fit_to_work_assessment' => 'Fit to Work Assessment',
+        'food_handler_certificate' => 'Food Handler Certificate',
+        'pet_vaccination' => 'Pet Vaccination Records',
+        'evacuation_plan' => 'Evacuation Plan',
+        'emergency_contacts' => 'Emergency Contacts',
+        'daily_schedule' => 'Daily Schedule',
+        'program_planning' => 'Program Planning',
+        'menu_sample' => 'Menu Sample',
+        'character_references' => 'Character References',
+        'fee_schedule' => 'Fee Schedule',
+        'transportation_policy' => 'Transportation Policy',
+        'other' => 'Other Documents',
+    ];
+
+    return view('admin.documents.index', compact('documents', 'stats', 'categories'));
+}
 }
