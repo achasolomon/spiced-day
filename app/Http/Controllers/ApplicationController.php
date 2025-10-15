@@ -6,7 +6,11 @@ use App\Models\Application;
 use App\Enums\ApplicationStatus;
 use App\Models\User;
 use App\Services\ApplicationStatusService;
+use App\Models\Consultant;
 use App\Models\PostalCodeRange;
+use App\Mail\ConsultantAssigned;
+use App\Models\Notification;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +23,10 @@ class ApplicationController extends Controller
     {
         $this->statusService = $statusService;
     }
+
+    /**
+ * Applicant view of their own applications
+ */
 
     public function create()
     {
@@ -37,15 +45,15 @@ class ApplicationController extends Controller
         
         $canView = false;
         
-        if ($application->user_id === $user->id) {
+        if ($application->user_id == $user->id) {
             $canView = true;
         }
         
-        if ($user->user_type === 'admin') {
+        if ($user->user_type == 'admin') {
             $canView = true;
         }
         
-        if ($user->user_type === 'consultant' && $application->consultant_id === $user->id) {
+        if ($user->user_type == 'consultant' && $application->consultant_id == $user->id) {
             $canView = true;
         }
         
@@ -55,11 +63,11 @@ class ApplicationController extends Controller
         
         $application->load(['user', 'consultant', 'documents', 'appointments']);
         
-        if ($user->user_type === 'admin') {
+        if ($user->user_type == 'admin') {
             return view('admin.applications.show', compact('application'));
         }
         
-        if ($user->user_type === 'consultant') {
+        if ($user->user_type == 'consultant') {
             return view('consultant.applications.show', compact('application'));
         }
         
@@ -90,6 +98,7 @@ class ApplicationController extends Controller
         return view('consultant.applications.index', compact('applications'));
     }
 
+    // store() method 
     public function store(Request $request)
     {
         Log::info('=== APPLICATION STORE STARTED ===');
@@ -147,13 +156,34 @@ class ApplicationController extends Controller
             if (!$isDraft) {
                 // Auto-assign consultant based on postal code
                 $consultant = $this->assignConsultantByPostalCode($application->postal_code);
-                if ($consultant) {
+                 if ($consultant) {
                     $application->update(['consultant_id' => $consultant->user_id]);
-                    Log::info('Consultant assigned', ['application_id' => $application->id, 'consultant_id' => $consultant->user_id]);
-                    \App\Models\AuditLog::log('consultant_assigned', $application, "Consultant assigned to application: {$consultant->user->name}");
+                    
+                    // Reload the consultant relationship
+                    $application->load('consultant');
+                    
+                    Log::info('Consultant assigned', [
+                        'application_id' => $application->id, 
+                        'consultant_id' => $consultant->user_id
+                    ]);
+                    
+                    \App\Models\AuditLog::log(
+                        'consultant_assigned', 
+                        $application, 
+                        "Consultant assigned to application: {$consultant->user->name}"
+                    );
+                    
+                    // Send notifications to consultant
+                    $this->notifyConsultantAssignment($application);
                 } else {
-                    Log::warning('No available consultant found for postal code', ['postal_code' => $application->postal_code]);
-                    \App\Models\AuditLog::log('consultant_assignment_failed', $application, "No consultant available for postal code: {$application->postal_code}");
+                    Log::warning('No available consultant found for postal code', [
+                        'postal_code' => $application->postal_code
+                    ]);
+                    \App\Models\AuditLog::log(
+                        'consultant_assignment_failed', 
+                        $application, 
+                        "No consultant available for postal code: {$application->postal_code}"
+                    );
                 }
             }
             
@@ -199,6 +229,75 @@ class ApplicationController extends Controller
             return back()->withInput()->with('error', 'Failed to create application: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Submit application (convert from draft to submitted)
+     */
+    public function submit(Application $application)
+        {   
+        if ($application->user_id !== auth()->id()) {
+            abort(403);
+        }
+        
+        if (!$application->canBeSubmitted()) {
+            return back()->with('error', 'Please complete all required fields before submitting.');
+        }
+        
+        DB::beginTransaction();
+        try {
+            // Auto-assign consultant if none assigned (e.g., draft to submitted)
+            if (!$application->consultant_id) {
+                $consultant = $this->assignConsultantByPostalCode($application->postal_code);
+                if ($consultant) {
+                    $application->update(['consultant_id' => $consultant->user_id]);
+                    
+                    // Reload the consultant relationship
+                    $application->load('consultant');
+                    
+                    Log::info('Consultant assigned', [
+                        'application_id' => $application->id, 
+                        'consultant_id' => $consultant->user_id
+                    ]);
+                    
+                    \App\Models\AuditLog::log(
+                        'consultant_assigned', 
+                        $application, 
+                        "Consultant assigned to application: {$consultant->user->name}"
+                    );
+                    
+                    // Send notifications to consultant
+                    $this->notifyConsultantAssignment($application);
+                } else {
+                    Log::warning('No available consultant found for postal code', [
+                        'postal_code' => $application->postal_code
+                    ]);
+                    \App\Models\AuditLog::log(
+                        'consultant_assignment_failed', 
+                        $application, 
+                        "No consultant available for postal code: {$application->postal_code}"
+                    );
+                }
+            }
+
+            $this->statusService->transitionTo(
+                $application,
+                ApplicationStatus::SUBMITTED,
+                "Application submitted by applicant"
+            );
+            
+            DB::commit();
+            
+            return redirect()
+                ->route('applicant.dashboard')
+                ->with('success', 'Application submitted successfully! We will contact you soon.');
+                
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Application submission failed', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Failed to submit application. Please try again.');
+        }
+    }
+
     public function update(Request $request, Application $application)
     {
         if ($application->user_id !== auth()->id()) {
@@ -312,45 +411,6 @@ class ApplicationController extends Controller
         }
 
         return view('applicant.applications.edit', compact('application'));
-    }
-
-   public function submit(Application $application)
-    {
-        if ($application->user_id !== auth()->id()) {
-            abort(403);
-        }
-        if (!$application->canBeSubmitted()) {
-            return back()->with('error', 'Please complete all required fields before submitting.');
-        }
-        DB::beginTransaction();
-        try {
-            // Auto-assign consultant if none assigned (e.g., draft to submitted)
-            if (!$application->consultant_id) {
-                $consultant = $this->assignConsultantByPostalCode($application->postal_code);
-                if ($consultant) {
-                    $application->update(['consultant_id' => $consultant->user_id]);
-                    Log::info('Consultant assigned', ['application_id' => $application->id, 'consultant_id' => $consultant->user_id]);
-                    \App\Models\AuditLog::log('consultant_assigned', $application, "Consultant assigned to application: {$consultant->user->name}");
-                } else {
-                    Log::warning('No available consultant found for postal code', ['postal_code' => $application->postal_code]);
-                    \App\Models\AuditLog::log('consultant_assignment_failed', $application, "No consultant available for postal code: {$application->postal_code}");
-                }
-            }
-
-            $this->statusService->transitionTo(
-                $application,
-                ApplicationStatus::SUBMITTED,
-                "Application submitted by applicant"
-            );
-            DB::commit();
-            return redirect()
-                ->route('applicant.dashboard')
-                ->with('success', 'Application submitted successfully! We will contact you soon.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            Log::error('Application submission failed', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Failed to submit application. Please try again.');
-        }
     }
 
     /**
@@ -565,24 +625,136 @@ class ApplicationController extends Controller
 
         return view('admin.applications.index', compact('applications', 'consultants', 'stats'));
     }
-     public function assignConsultant(Request $request, Application $application)
+
+        /**
+     * Assign consultant to application (Admin only)
+     * This method replaces the existing assignConsultant method in ApplicationController.php
+     * Location: Around line 578 in your ApplicationController.php
+     */
+    public function assignConsultant(Request $request, Application $application)
     {
         if (!auth()->user()->isAdmin()) {
-            abort(403);
+            abort(403, 'Only administrators can assign consultants.');
         }
 
         $validated = $request->validate([
             'consultant_id' => 'required|exists:users,id',
         ]);
 
-        $application->update([
-            'consultant_id' => $validated['consultant_id'],
+        DB::beginTransaction();
+        try {
+            // Get the old consultant ID for logging
+            $oldConsultantId = $application->consultant_id;
+            
+            // Update application with new consultant
+            $application->update([
+                'consultant_id' => $validated['consultant_id'],
+            ]);
+
+            // Reload the relationship to get fresh consultant data
+            $application->load('consultant.user');
+
+            // Create audit log
+            if ($oldConsultantId) {
+                \App\Models\AuditLog::log(
+                    'consultant_reassigned',
+                    $application,
+                    "Consultant reassigned by admin to: {$application->consultant->user->name}"
+                );
+            } else {
+                \App\Models\AuditLog::log(
+                    'consultant_assigned',
+                    $application,
+                    "Consultant manually assigned by admin: {$application->consultant->user->name}"
+                );
+            }
+
+            // Update consultant's workload metrics
+            if ($application->consultant) {
+                $application->consultant->updateWorkloadMetrics();
+            }
+
+            // Send notifications to the newly assigned consultant
+            $this->notifyConsultantAssignment($application);
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.applications.index')
+                ->with('success', 'Consultant assigned successfully! Notification sent.');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Failed to assign consultant', [
+                'application_id' => $application->id,
+                'consultant_id' => $validated['consultant_id'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Failed to assign consultant: ' . $e->getMessage());
+        }
+    }
+
+    /**
+ * Send notifications when consultant is assigned to application
+ * Replace the existing notifyConsultantAssignment method in ApplicationController.php
+ */
+protected function notifyConsultantAssignment(Application $application)
+{
+    if (!$application->consultant_id) {
+        Log::warning('Cannot send notification: No consultant assigned', [
+            'application_id' => $application->id
+        ]);
+        return;
+    }
+
+    try {
+        // Reload the consultant relationship (consultant is a User)
+        $application->load('consultant');
+        
+        if (!$application->consultant) {
+            Log::error('Consultant relationship not found', [
+                'application_id' => $application->id,
+                'consultant_id' => $application->consultant_id
+            ]);
+            return;
+        }
+
+        // Create in-app notification
+        Notification::create([
+            'user_id' => $application->consultant_id, // The consultant's user_id
+            'application_id' => $application->id,
+            'type' => 'consultant_assigned',
+            'title' => 'New Application Assigned',
+            'message' => "Application #{$application->application_number} from {$application->educator_first_name} {$application->educator_last_name} has been assigned to you.",
+            'priority' => 'high',
+            'action_url' => route('consultant.applications.show', $application->id),
+            'action_text' => 'View Application',
+            'requires_action' => true,
         ]);
 
-        return redirect()
-            ->route('admin.applications.index')
-            ->with('success', 'Consultant assigned successfully!');
+        // Send email notification
+        Mail::to($application->consultant->email)
+            ->send(new ConsultantAssigned($application));
+
+        Log::info('Consultant assignment notifications sent successfully', [
+            'application_id' => $application->id,
+            'consultant_id' => $application->consultant_id,
+            'consultant_email' => $application->consultant->email
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Failed to send consultant assignment notifications', [
+            'application_id' => $application->id,
+            'consultant_id' => $application->consultant_id ?? null,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        // Don't throw exception - notification failure shouldn't stop the assignment
     }
+}
+
     public function adminShow(Application $application)
     {
         // Load all necessary relationships

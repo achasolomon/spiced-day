@@ -148,12 +148,6 @@ Route::middleware(['auth', 'verified', 'user.type:consultant'])->prefix('consult
         Route::post('/{application}/move-stage', [ApplicationController::class, 'moveStage'])->name('move-stage');
     });
 
-    // Appointments
-    Route::resource('appointments', AppointmentController::class);
-    Route::post('/appointments/{appointment}/start', [AppointmentController::class, 'start'])->name('appointments.start');
-    Route::post('/appointments/{appointment}/complete', [AppointmentController::class, 'complete'])->name('appointments.complete');
-    Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
-
     // Inspections
     Route::resource('inspections', InspectionController::class);
     Route::get('/inspections/{inspection}/checklist', [InspectionController::class, 'checklist'])->name('inspections.checklist');
@@ -175,16 +169,20 @@ Route::middleware(['auth', 'verified', 'user.type:consultant'])->prefix('consult
     // Calendar
     Route::get('/calendar', [AppointmentController::class, 'calendar'])->name('calendar');
 
+    // Appointments
+
  Route::prefix('appointments')->name('appointments.')->group(function () {
-        Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('show');
-        Route::post('/', [AppointmentController::class, 'store'])->name('store');
-        Route::get('/{appointment}/edit', [AppointmentController::class, 'edit'])->name('edit');
-        Route::put('/{appointment}', [AppointmentController::class, 'update'])->name('update');
-        Route::post('/{appointment}/start', [AppointmentController::class, 'start'])->name('start');
-        Route::post('/{appointment}/complete', [AppointmentController::class, 'complete'])->name('complete');
-        Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('cancel');
-        Route::post('/{appointment}/confirm', [AppointmentController::class, 'confirm'])->name('confirm');
-    });    
+    Route::get('/', [AppointmentController::class, 'index'])->name('index'); // Add this if missing
+    Route::get('/create', [AppointmentController::class, 'create'])->name('create'); // ADD THIS LINE
+    Route::post('/', [AppointmentController::class, 'store'])->name('store');
+    Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('show');
+    Route::get('/{appointment}/edit', [AppointmentController::class, 'edit'])->name('edit');
+    Route::put('/{appointment}', [AppointmentController::class, 'update'])->name('update');
+    Route::post('/{appointment}/start', [AppointmentController::class, 'start'])->name('start');
+    Route::post('/{appointment}/complete', [AppointmentController::class, 'complete'])->name('complete');
+    Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('cancel');
+    Route::post('/{appointment}/confirm', [AppointmentController::class, 'confirm'])->name('confirm');
+});    
 
     // // Reports
     // Route::prefix('reports')->name('reports.')->group(function () {
@@ -224,7 +222,7 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
     // Consultants
     Route::prefix('consultants')->name('consultants.')->group(function () {
             Route::get('/', [ConsultantController::class, 'index'])->name('index');
-            Route::get('/available-users', [ConsultantController::class, 'getAvailableUsers'])->name('available-users'); // Add this
+            Route::get('/available-users', [ConsultantController::class, 'getAvailableUsers'])->name('available-users');
             Route::get('/create', [ConsultantController::class, 'create'])->name('create');
             Route::post('/', [ConsultantController::class, 'store'])->name('store');
             Route::get('/{consultant}', [ConsultantController::class, 'show'])->name('show');
@@ -271,6 +269,8 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
      // Appointments
     Route::prefix('appointments')->name('appointments.')->group(function () {
         Route::get('/', [AppointmentController::class, 'adminIndex'])->name('index');
+        Route::get('/create', [AppointmentController::class, 'create'])->name('create');
+        Route::post('/', [AppointmentController::class, 'store'])->name('store');
         Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('show');
         Route::get('/{appointment}/edit', [AppointmentController::class, 'edit'])->name('edit');
         Route::put('/{appointment}', [AppointmentController::class, 'update'])->name('update');

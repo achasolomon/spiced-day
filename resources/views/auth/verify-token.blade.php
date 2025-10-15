@@ -37,7 +37,7 @@
                 </form>
 
                 <!-- Main Form -->
-                <form method="POST" action="{{ route('token.verify') }}" @submit="handleSubmit">
+                <form x-ref="mainForm" method="POST" action="{{ route('token.verify') }}" @submit="handleSubmit">
                     @csrf
 
                     <!-- Email Display -->
@@ -96,16 +96,18 @@
                             </button>
                         </div>
                         
-                        <div class="grid grid-cols-6 gap-2" @paste="handlePaste($event)">
+                        <div class="grid grid-cols-6 gap-2" @paste="handlePaste($event)" x-ref="digitContainer">
                             <template x-for="index in 6" :key="index">
                                 <input
-                                    :ref="'digit' + (index - 1)"
+                                    :id="'digit' + (index - 1)"
                                     x-model="digits[index - 1]"
                                     @input="handleInput($event, index - 1)"
                                     @keydown.backspace="handleBackspace($event, index - 1)"
+                                    @keydown="handleKeyDown($event, index - 1)"
                                     type="text"
                                     inputmode="numeric"
                                     maxlength="1"
+                                    autocomplete="off"
                                     class="w-full aspect-square text-center text-xl font-semibold border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                                 />
                             </template>
@@ -186,42 +188,122 @@
                 digits: ['', '', '', '', '', ''],
                 
                 init() {
-                    // Auto-focus first input
+                    // Auto-focus first input on page load
                     this.$nextTick(() => {
-                        const firstInput = this.$refs['digit0'];
-                        if (firstInput) firstInput.focus();
+                        const firstInput = document.getElementById('digit0');
+                        if (firstInput) {
+                            firstInput.focus();
+                        }
                     });
                 },
                 
                 handleInput(event, index) {
-                    const value = event.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-                    this.digits[index] = value;
+                    const input = event.target;
+                    let value = input.value.replace(/[^0-9]/g, '');
                     
+                    // Handle multiple digits pasted into single input
+                    if (value.length > 1) {
+                        const digits = value.split('');
+                        for (let i = 0; i < digits.length && (index + i) < 6; i++) {
+                            this.digits[index + i] = digits[i];
+                        }
+                        // Focus on the last filled input or next empty one
+                        const nextIndex = Math.min(index + digits.length, 5);
+                        this.focusInput(nextIndex);
+                        
+                        // Check if all digits are filled
+                        this.checkAutoSubmit();
+                        return;
+                    }
+                    
+                    // Single digit input
+                    this.digits[index] = value.slice(0, 1);
+                    
+                    // Auto-focus next input if value entered
                     if (value && index < 5) {
                         this.$nextTick(() => {
-                            const nextInput = this.$refs['digit' + (index + 1)];
-                            if (nextInput) nextInput.focus();
+                            this.focusInput(index + 1);
                         });
                     }
+                    
+                    // Check if all digits are filled for auto-submit
+                    this.checkAutoSubmit();
                 },
                 
                 handleBackspace(event, index) {
+                    // If current input is empty and backspace is pressed, move to previous input
                     if (!this.digits[index] && index > 0) {
                         event.preventDefault();
-                        const prevInput = this.$refs['digit' + (index - 1)];
-                        if (prevInput) prevInput.focus();
+                        this.digits[index - 1] = '';
+                        this.focusInput(index - 1);
+                    }
+                },
+                
+                handleKeyDown(event, index) {
+                    // Handle left and right arrow keys
+                    if (event.key === 'ArrowLeft' && index > 0) {
+                        event.preventDefault();
+                        this.focusInput(index - 1);
+                    } else if (event.key === 'ArrowRight' && index < 5) {
+                        event.preventDefault();
+                        this.focusInput(index + 1);
                     }
                 },
                 
                 handlePaste(event) {
-                    const paste = event.clipboardData.getData('text');
-                    if (/^\d{6}$/.test(paste)) {
-                        this.digits = paste.split('');
+                    const paste = event.clipboardData.getData('text').replace(/[^0-9]/g, '');
+                    
+                    if (paste.length === 6) {
                         event.preventDefault();
+                        this.digits = paste.split('');
+                        
+                        // Focus last input
+                        this.$nextTick(() => {
+                            this.focusInput(5);
+                            // Auto-submit after paste
+                            this.checkAutoSubmit();
+                        });
+                    }
+                },
+                
+                focusInput(index) {
+                    const input = document.getElementById('digit' + index);
+                    if (input) {
+                        input.focus();
+                        // Select the content if any
+                        input.select();
+                    }
+                },
+                
+                checkAutoSubmit() {
+                    // Check if all 6 digits are filled
+                    const allFilled = this.digits.every(digit => digit !== '');
+                    
+                    if (allFilled && !this.loading) {
+                        // Small delay to show the last digit before submitting
+                        setTimeout(() => {
+                            this.autoSubmit();
+                        }, 300);
+                    }
+                },
+                
+                autoSubmit() {
+                    if (!this.loading) {
+                        this.loading = true;
+                        this.$refs.mainForm.submit();
                     }
                 },
                 
                 handleSubmit(event) {
+                    // Check if all digits are filled
+                    const allFilled = this.digits.every(digit => digit !== '');
+                    
+                    if (!allFilled) {
+                        event.preventDefault();
+                        alert('Please enter all 6 digits of the verification code.');
+                        return;
+                    }
+                    
                     this.loading = true;
                 },
                 
@@ -238,6 +320,8 @@
                 resendCode() {
                     this.resendLoading = true;
                     this.startCountdown();
+                    // Clear current digits
+                    this.digits = ['', '', '', '', '', ''];
                     this.$refs.resendForm.submit();
                 }
             }
@@ -247,6 +331,13 @@
     <style>
         input[type='text']:focus {
             box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+        }
+        
+        /* Prevent input zoom on mobile */
+        @media screen and (max-width: 768px) {
+            input[type='text'] {
+                font-size: 16px;
+            }
         }
     </style>
 </x-guest-layout>

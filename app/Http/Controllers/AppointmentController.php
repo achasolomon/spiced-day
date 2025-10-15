@@ -53,7 +53,7 @@ class AppointmentController extends Controller
     {
         $user = auth()->user();
         
-        if ($user->user_type !== 'admin' && $appointment->consultant_id !== $user->id && $appointment->applicant_id !== $user->id) {
+        if ($user->user_type != 'admin' && $appointment->consultant_id != $user->id && $appointment->applicant_id !== $user->id) {
             abort(403, 'Unauthorized access to this appointment.');
         }
 
@@ -64,11 +64,11 @@ class AppointmentController extends Controller
             'inspection'
         ]);
 
-        if ($user->user_type === 'consultant') {
+        if ($user->user_type == 'consultant') {
             return view('consultant.appointments.show', compact('appointment'));
         }
         
-        if ($user->user_type === 'applicant') {
+        if ($user->user_type == 'applicant') {
             return view('applicant.appointments.show', compact('appointment'));
         }
         
@@ -96,7 +96,7 @@ class AppointmentController extends Controller
 
   public function store(Request $request)
 {
-    if (auth()->user()->user_type !== 'consultant') {
+    if (auth()->user()->user_type != 'consultant') {
         abort(403, 'Only consultants can schedule appointments.');
     }
 
@@ -208,7 +208,7 @@ class AppointmentController extends Controller
     {
         $user = auth()->user();
         
-        if ($user->user_type !== 'admin' && $appointment->consultant_id !== $user->id) {
+        if ($user->user_type != 'admin' && $appointment->consultant_id != $user->id) {
             abort(403, 'Unauthorized to edit this appointment.');
         }
 
@@ -317,9 +317,9 @@ class AppointmentController extends Controller
         $user = auth()->user();
         $updateData = ['confirmed_at' => now(), 'confirmation_method' => 'web'];
 
-        if ($user->id === $appointment->consultant_id) {
+        if ($user->id == $appointment->consultant_id) {
             $updateData['consultant_confirmed'] = true;
-        } elseif ($user->id === $appointment->applicant_id) {
+        } elseif ($user->id == $appointment->applicant_id) {
             $updateData['applicant_confirmed'] = true;
         }
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ mobileMenuOpen: false, darkMode: false }" x-init="darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches">
+<html lang="en" x-data="{ mobileMenuOpen: false, darkMode: false }" x-init="darkMode = false">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -125,7 +125,7 @@
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="#home" class="text-neutral-700 dark:text-neutral-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors font-medium">Home</a>
                    
-                    <!-- Dark Mode Toggle -->
+                    <!-- Dark Mode Toggle
                     <button @click="darkMode = !darkMode" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                         <svg x-show="!darkMode" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
@@ -133,7 +133,7 @@
                         <svg x-show="darkMode" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
                         </svg>
-                    </button>
+                    </button> -->
                     
                     <div class="flex items-center space-x-4">
                         <a href="/login" class="text-neutral-700 dark:text-neutral-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors font-medium">Login</a>
@@ -176,125 +176,125 @@
     </nav>
 
     <!-- Hero Section -->
-    <section id="home" class="relative min-h-screen flex items-center overflow-hidden">
-        <!-- Animated Background -->
-        <div class="absolute inset-0 bg-gradient-to-br from-neutral-50 via-red-50/30 via-orange-50/30 via-yellow-50/30 via-green-50/30 via-blue-50/30 to-purple-50/30 dark:from-neutral-900 dark:via-neutral-800/50 dark:to-neutral-900/10 transition-all duration-700"></div>
-        
-        <!-- Floating Rainbow Elements -->
-        <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <div class="absolute top-20 left-10 w-16 h-16 bg-red-400/20 rounded-full animate-float blur-sm transition-all duration-1000"></div>
-            <div class="absolute top-40 right-20 w-20 h-20 bg-orange-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 0.5s;"></div>
-            <div class="absolute bottom-40 left-20 w-12 h-12 bg-yellow-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 1s;"></div>
-            <div class="absolute bottom-20 right-32 w-24 h-24 bg-green-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 1.5s;"></div>
-            <div class="absolute top-60 left-1/3 w-14 h-14 bg-blue-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 2s;"></div>
-            <div class="absolute bottom-32 right-10 w-18 h-18 bg-purple-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 2.5s;"></div>
-        </div>
-        
-        <div class="relative max-w-7xl mx-auto px-6 lg:px-8 py-32">
-            <div class="grid lg:grid-cols-2 gap-16 items-center">
-                
-                <!-- Content -->
-                <div class="space-y-8 animate-fade-in">
-                    <div class="space-y-6">
-                        <h1 class="text-5xl lg:text-7xl font-bold leading-tight">
-                            <span class="text-neutral-900 dark:text-white transition-colors duration-300">Professional</span><br>
-                            <span class="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent animate-pulse">Dayhome</span><br>
-                            <span class="text-neutral-900 dark:text-white transition-colors duration-300">Licensing</span>
-                        </h1>
-                        
-                        <p class="text-xl text-neutral-600 dark:text-neutral-300 leading-relaxed max-w-xl transition-colors duration-300">
-                            Expert guidance through SPICE'd dayhome certification process with our 
-                            <span class="font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">98% approval rate</span> 
-                            and personalized support from application to operation.
-                        </p>
-                    </div>
+        <section id="home" class="relative min-h-screen flex items-center overflow-hidden">
+            <!-- Animated Background -->
+            <div class="absolute inset-0 bg-gradient-to-br from-neutral-50 via-red-50/30 via-orange-50/30 via-yellow-50/30 via-green-50/30 via-blue-50/30 to-purple-50/30 dark:from-neutral-900 dark:via-neutral-800/50 dark:to-neutral-900/10 transition-all duration-700"></div>
+            
+            <!-- Floating Rainbow Elements -->
+            <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                <div class="absolute top-20 left-10 w-16 h-16 bg-red-400/20 rounded-full animate-float blur-sm transition-all duration-1000"></div>
+                <div class="absolute top-40 right-20 w-20 h-20 bg-orange-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 0.5s;"></div>
+                <div class="absolute bottom-40 left-20 w-12 h-12 bg-yellow-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 1s;"></div>
+                <div class="absolute bottom-20 right-32 w-24 h-24 bg-green-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 1.5s;"></div>
+                <div class="absolute top-60 left-1/3 w-14 h-14 bg-blue-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 2s;"></div>
+                <div class="absolute bottom-32 right-10 w-18 h-18 bg-purple-400/20 rounded-full animate-float blur-sm transition-all duration-1000" style="animation-delay: 2.5s;"></div>
+            </div>
+            
+            <div class="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 md:py-32">
+                <div class="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
                     
-                    <div class="flex flex-col sm:flex-row gap-4 animate-slide-up">
-                        <a href="/register" class="group bg-gradient-to-r from-purple-500 via-purple-500 to-purple-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 text-center relative overflow-hidden">
-                            <span class="relative z-10">Start Application</span>
-                            <div class="absolute inset-0 bg-purple-500 via-purple-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </a>
-                        <a href="#process" class="group border-2 border-purple-300 dark:border-purple-600 hover:border-transparent hover:bg-gradient-to-r hover:from-purple-500 hover:to-purple-500 text-neutral-700 dark:text-neutral-300 hover:text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 text-center hover:shadow-xl hover:scale-105">
-                            <span class="group-hover:text-white transition-colors duration-300">View Process</span>
-                        </a>
-                    </div>
-                    
-                    <!-- Trust Indicators -->
-                    <div class="grid grid-cols-3 gap-8 pt-8 border-t border-neutral-200 dark:border-neutral-700 animate-scale-in">
-                        <div class="text-center group hover:scale-110 transition-transform duration-300">
-                            <div class="text-2xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">500+</div>
-                            <div class="text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Licensed Homes</div>
-                        </div>
-                        <div class="text-center group hover:scale-110 transition-transform duration-300">
-                            <div class="text-2xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">15+</div>
-                            <div class="text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Years Experience</div>
-                        </div>
-                        <div class="text-center group hover:scale-110 transition-transform duration-300">
-                            <div class="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">98%</div>
-                            <div class="text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Approval Rate</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Hero Images -->
-                <div class="relative lg:ml-8 animate-slide-up">
-                    <div class="relative">
-                        <!-- Main Hero Image -->
-                        <div class="relative h-128 w-full rounded-2xl overflow-hidden shadow-2xl group">
-                           <img 
-                                src="{{ asset('assets/images/splash.webp') }}" 
-                                alt="Happy children learning and playing in a professional dayhome environment"
-                                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                loading="lazy"
-                            >
-                            <!-- Gradient overlay for text readability -->
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <!-- Content -->
+                    <div class="space-y-6 md:space-y-8 animate-fade-in order-2 lg:order-1">
+                        <div class="space-y-4 md:space-y-6">
+                            <h1 class="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight">
+                                <span class="text-neutral-900 dark:text-white transition-colors duration-300">Professional</span><br>
+                                <span class="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent animate-pulse">Dayhome</span><br>
+                                <span class="text-neutral-900 dark:text-white transition-colors duration-300">Licensing</span>
+                            </h1>
                             
-                            <!-- Floating overlay content -->
-                            <div class="absolute bottom-24 left-6 right-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-                                <div class="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
-                                    <p class="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Safe, nurturing environment</p>
-                                    <p class="text-xs text-neutral-600 dark:text-neutral-400">Professional childcare licensing</p>
-                                </div>
+                            <p class="text-lg md:text-xl text-neutral-600 dark:text-neutral-300 leading-relaxed max-w-xl transition-colors duration-300">
+                                Expert guidance through SPICE'd dayhome certification process with our 
+                                <span class="font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">98% approval rate</span> 
+                                and personalized support from application to operation.
+                            </p>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-4 animate-slide-up">
+                            <a href="/register" class="group bg-gradient-to-r from-purple-500 via-purple-500 to-purple-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 text-center relative overflow-hidden">
+                                <span class="relative z-10">Start Application</span>
+                                <div class="absolute inset-0 bg-purple-500 via-purple-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            </a>
+                            <a href="#process" class="group border-2 border-purple-300 dark:border-purple-600 hover:border-transparent hover:bg-gradient-to-r hover:from-purple-500 hover:to-purple-500 text-neutral-700 dark:text-neutral-300 hover:text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 text-center hover:shadow-xl hover:scale-105">
+                                <span class="group-hover:text-white transition-colors duration-300">View Process</span>
+                            </a>
+                        </div>
+                        
+                        <!-- Trust Indicators -->
+                        <div class="grid grid-cols-3 gap-4 md:gap-8 pt-6 md:pt-8 border-t border-neutral-200 dark:border-neutral-700 animate-scale-in">
+                            <div class="text-center group hover:scale-110 transition-transform duration-300">
+                                <div class="text-xl md:text-2xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">500+</div>
+                                <div class="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Licensed Homes</div>
+                            </div>
+                            <div class="text-center group hover:scale-110 transition-transform duration-300">
+                                <div class="text-xl md:text-2xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">15+</div>
+                                <div class="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Years Experience</div>
+                            </div>
+                            <div class="text-center group hover:scale-110 transition-transform duration-300">
+                                <div class="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">98%</div>
+                                <div class="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Approval Rate</div>
                             </div>
                         </div>
-                        
-                        <!-- Secondary floating images -->
-                        <div class="absolute -top-8 -right-8 w-32 h-32 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 hover:rotate-3">
-                             <img 
-                                src="{{ asset('assets/images/kid1.jpeg') }}"
-                                alt="Children engaged in educational activities"
-                                class="w-full h-full object-cover"
-                                loading="lazy"
-                            >
-                            <div class="absolute inset-0 bg-gradient-to-br from-red-400/20 to-orange-400/20"></div>
-                        </div>
-                        
-                        <div class="absolute -bottom-8 -left-8 w-40 h-28 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 hover:-rotate-2">
+                    </div>
+                    
+                    <!-- Hero Images - Responsive -->
+                    <div class="relative animate-slide-up order-1 lg:order-2">
+                        <div class="relative">
+                            <!-- Main Hero Image - Responsive Heights -->
+                            <div class="relative h-64 sm:h-80 md:h-96 lg:h-128 w-full rounded-2xl overflow-hidden shadow-2xl group">
                             <img 
-                                src="{{ asset('assets/images/play.jpg') }}"
-                                alt="Children engaged in educational activities"
-                                class="w-full h-full object-cover"
-                                loading="lazy"
-                            >
-                            <div class="absolute inset-0 bg-gradient-to-br from-green-400/20 to-blue-400/20"></div>
+                                    src="{{ asset('assets/images/splash.webp') }}" 
+                                    alt="Happy children learning and playing in a professional dayhome environment"
+                                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    loading="lazy"
+                                >
+                                <!-- Gradient overlay -->
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                
+                                <!-- Floating overlay content -->
+                                <div class="absolute bottom-4 md:bottom-24 left-4 md:left-6 right-4 md:right-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                                    <div class="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm rounded-lg p-3 md:p-4 shadow-lg">
+                                        <p class="text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200">Safe, nurturing environment</p>
+                                        <p class="text-xs text-neutral-600 dark:text-neutral-400">Professional childcare licensing</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Secondary floating images - Hidden on mobile, visible on md+ -->
+                            <div class="hidden md:block absolute -top-8 -right-8 w-24 h-24 lg:w-32 lg:h-32 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 hover:rotate-3">
+                                <img 
+                                    src="{{ asset('assets/images/kid1.jpeg') }}"
+                                    alt="Children engaged in educational activities"
+                                    class="w-full h-full object-cover"
+                                    loading="lazy"
+                                >
+                                <div class="absolute inset-0 bg-gradient-to-br from-red-400/20 to-orange-400/20"></div>
+                            </div>
+                            
+                            <div class="hidden md:block absolute -bottom-8 -left-8 w-28 h-20 lg:w-40 lg:h-28 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 hover:-rotate-2">
+                                <img 
+                                    src="{{ asset('assets/images/play.jpg') }}"
+                                    alt="Children engaged in educational activities"
+                                    class="w-full h-full object-cover"
+                                    loading="lazy"
+                                >
+                                <div class="absolute inset-0 bg-gradient-to-br from-green-400/20 to-blue-400/20"></div>
+                            </div>
+                            
+                            <!-- Rainbow accent elements - Hidden on mobile -->
+                            <div class="hidden md:block absolute top-1/4 -left-4 w-6 h-12 lg:w-8 lg:h-16 bg-gradient-to-b from-red-400 via-orange-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400 rounded-full opacity-70 animate-float blur-sm"></div>
+                            <div class="hidden md:block absolute bottom-1/4 -right-4 w-5 h-14 lg:w-6 lg:h-20 bg-gradient-to-b from-purple-400 via-blue-400 via-green-400 via-yellow-400 via-orange-400 to-red-400 rounded-full opacity-70 animate-float blur-sm" style="animation-delay: 1.5s;"></div>
                         </div>
-                        
-                        <!-- Rainbow accent elements inspired by your logo -->
-                        <div class="absolute top-1/4 -left-4 w-8 h-16 bg-gradient-to-b from-red-400 via-orange-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400 rounded-full opacity-70 animate-float blur-sm"></div>
-                        <div class="absolute bottom-1/4 -right-4 w-6 h-20 bg-gradient-to-b from-purple-400 via-blue-400 via-green-400 via-yellow-400 via-orange-400 to-red-400 rounded-full opacity-70 animate-float blur-sm" style="animation-delay: 1.5s;"></div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Scroll indicator -->
-        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div class="w-6 h-10 border-2 border-neutral-400 dark:border-neutral-600 rounded-full flex justify-center">
-                <div class="w-1 h-3 bg-neutral-400 dark:bg-neutral-600 rounded-full animate-pulse mt-2"></div>
+            
+            <!-- Scroll indicator -->
+            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+                <div class="w-6 h-10 border-2 border-neutral-400 dark:border-neutral-600 rounded-full flex justify-center">
+                    <div class="w-1 h-3 bg-neutral-400 dark:bg-neutral-600 rounded-full animate-pulse mt-2"></div>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
     <!-- About/SPICE Section -->
     <section id="about" class="py-24 bg-white dark:bg-neutral-900">
@@ -1106,18 +1106,16 @@
                     this.mobileMenuOpen = false;
                 },
                 
-                toggleDarkMode() {
-                    this.darkMode = !this.darkMode;
-                    localStorage.setItem('darkMode', this.darkMode);
-                }
+                // toggleDarkMode() {
+                //     this.darkMode = !this.darkMode;
+                //     localStorage.setItem('darkMode', this.darkMode);
+                // }
             });
         });
 
         // Load saved dark mode preference
-        const savedDarkMode = localStorage.getItem('darkMode');
-        if (savedDarkMode !== null) {
-            document.documentElement.classList.toggle('dark', savedDarkMode === 'true');
-        }
+       localStorage.removeItem('darkMode');
+        document.documentElement.classList.remove('dark');
     </script>
 </body>
 </html> 

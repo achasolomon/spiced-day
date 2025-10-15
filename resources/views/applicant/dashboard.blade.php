@@ -27,15 +27,19 @@
     </div>
 
     @if($activeApplication)
-    {{-- Application Status Card --}}
+        {{-- Application Status Card --}}
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
     <div class="p-4 sm:p-6">
-        <div class="flex items-start justify-between mb-4 gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
             <div class="min-w-0 flex-1">
-                <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium truncate">Application #{{ $activeApplication->application_number }}</p>
-                <h2 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">{{ $activeApplication->full_name }}</h2>
+                <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium truncate">
+                    Application #{{ $activeApplication->application_number }}
+                </p>
+                <h2 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {{ $activeApplication->full_name }}
+                </h2>
             </div>
-            <span class="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0"
+            <span class="px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap self-start"
                   style="background: linear-gradient(135deg, #553e96 0%, #7c3aed 100%); color: white;">
                 {{ ucfirst(str_replace('_', ' ', $activeApplication->status)) }}
             </span>
@@ -75,26 +79,65 @@
             $progressPercentage = $currentStageIndex > 0 ? (($currentStageIndex) / (count($stages) - 1)) * 100 : 0;
         @endphp
 
-        <div class="mb-8 px-2 sm:px-4">
-            <div class="relative">
+        {{-- Mobile: Vertical Progress Stepper --}}
+        <div class="block md:hidden mb-6">
+            <div class="space-y-3">
+                @foreach($stages as $index => $stage)
+                    <div class="flex items-center gap-3">
+                        {{-- Circle --}}
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2
+                            {{ $index <= $currentStageIndex ? 'border-purple-600 bg-white dark:bg-gray-800 shadow-md' : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700' }}
+                            {{ $index < $currentStageIndex ? 'text-green-600' : ($index === $currentStageIndex ? 'text-purple-600' : 'text-gray-400 dark:text-gray-500') }}">
+                            
+                            @if($index < $currentStageIndex)
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            @else
+                                {{ $index + 1 }}
+                            @endif
+                        </div>
+                        
+                        {{-- Label --}}
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold {{ $index <= $currentStageIndex ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500' }}">
+                                {{ $stage['name'] }}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {{-- Connector Line (except for last item) --}}
+                    @if($index < count($stages) - 1)
+                        <div class="flex items-center gap-3 -my-1">
+                            <div class="w-10 flex justify-center">
+                                <div class="w-0.5 h-6 {{ $index < $currentStageIndex ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600' }}"></div>
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Desktop: Horizontal Progress Stepper --}}
+        <div class="hidden md:block mb-8">
+            <div class="relative px-4">
                 <div class="flex items-center justify-between">
                     {{-- Background Line --}}
-                    <div class="absolute top-5 sm:top-8 left-0 right-0 h-0.5 sm:h-1 bg-gray-200 dark:bg-gray-700"></div>
+                    <div class="absolute top-8 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700"></div>
                     
                     {{-- Progress Line --}}
-                    <div class="absolute top-5 sm:top-8 left-0 h-0.5 sm:h-1 transition-all duration-500" 
+                    <div class="absolute top-8 left-0 h-1 transition-all duration-500" 
                          style="width: {{ $progressPercentage }}%; background: linear-gradient(135deg, #553e96 0%, #7c3aed 100%);"></div>
                     
                     {{-- Stage Circles --}}
                     @foreach($stages as $index => $stage)
                         <div class="relative flex flex-col items-center" style="width: {{ 100 / count($stages) }}%;">
-                            <div class="w-10 h-10 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-bold text-xs sm:text-lg transition-all duration-300 z-10 border-2
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 z-10 border-2
                                 {{ $index <= $currentStageIndex ? 'border-purple-600 bg-white dark:bg-gray-800 shadow-lg' : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700' }}
                                 {{ $index < $currentStageIndex ? 'text-green-600' : ($index === $currentStageIndex ? 'text-purple-600' : 'text-gray-400 dark:text-gray-500') }}">
                                 
                                 @if($index < $currentStageIndex)
-                                    {{-- Completed - Green checkmark --}}
-                                    <svg class="w-4 h-4 sm:w-8 sm:h-8" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
                                 @else
@@ -102,7 +145,7 @@
                                 @endif
                             </div>
                             
-                            <p class="mt-1.5 sm:mt-3 text-[0.6rem] sm:text-xs font-semibold text-center leading-tight px-0.5
+                            <p class="mt-3 text-xs font-semibold text-center leading-tight px-1
                                 {{ $index <= $currentStageIndex ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500' }}">
                                 {{ $stage['name'] }}
                             </p>
@@ -112,15 +155,15 @@
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-2 sm:gap-3">
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <a href="{{ route('applicant.applications.show', $activeApplication) }}" 
-               class="px-3 sm:px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+               class="px-4 py-2.5 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity text-center"
                style="background: linear-gradient(135deg, #553e96 0%, #7c3aed 100%);">
                 View Application
             </a>
             @if(in_array($activeApplication->status, ['draft', 'documents_required']))
                 <a href="{{ route('applicant.applications.edit', $activeApplication) }}"
-                   class="px-3 sm:px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors">
+                   class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors text-center">
                     Continue Editing
                 </a>
             @endif

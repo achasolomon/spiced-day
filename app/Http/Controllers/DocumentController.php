@@ -21,8 +21,7 @@ class DocumentController extends Controller
         $this->statusService = $statusService;
     }
 
-    public function index(Application $application)
-    {
+    public function index(Application $application){
         if (auth()->user()->isApplicant()) {
             if ($application->user_id !== auth()->id()) {
                 abort(403, 'Unauthorized access to this application.');

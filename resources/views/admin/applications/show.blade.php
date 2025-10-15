@@ -117,7 +117,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <p class="text-sm text-gray-600 dark:text-gray-400">Days Active</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                {{ $application->created_at->diffInDays(now()) }}
+            {{ number_format($application->created_at->floatDiffInDays(now()), 2) }}
             </p>
         </div>
     </div>

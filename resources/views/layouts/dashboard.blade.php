@@ -49,48 +49,41 @@
                     </div>
 
                     <!-- Right Section -->
-                    <div class="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
-
-                        <!-- Dark Mode Toggle -->
-                        <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
-                                class="p-1.5 sm:p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
-                            <svg x-show="!darkMode" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zM10 6a4 4 0 100 8 4 4 0 000-8zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zM10 18a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z" clip-rule="evenodd"/>
-                            </svg>
-                            <svg x-show="darkMode" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
-                            </svg>
-                        </button>
-
+                    <div class="flex items-center space-x-1 sm:space-x-2 md:space-x-3">
                         <!-- Notifications -->
-                        <div class="relative" x-data="{ open: false }">
+                        <div class="relative flex-shrink-0" x-data="{ open: false }">
                             <!-- Mobile: Direct link to notifications page -->
-                            <a href="{{ route('notifications.index') }}" class="lg:hidden relative p-1.5 sm:p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
-                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <a href="{{ route('notifications.index') }}" 
+                            class="lg:hidden relative inline-flex items-center justify-center p-1.5 sm:p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
                                 </svg>
                                 @if(auth()->user()->getUnreadNotificationsCount() > 0)
-                                    <span class="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
-                                        {{ auth()->user()->getUnreadNotificationsCount() }}
+                                    <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full text-white text-[10px] font-medium flex items-center justify-center px-1">
+                                        {{ auth()->user()->getUnreadNotificationsCount() > 9 ? '9+' : auth()->user()->getUnreadNotificationsCount() }}
                                     </span>
                                 @endif
                             </a>
                             
                             <!-- Desktop: Dropdown -->
-                            <button @click="open = !open" class="hidden lg:block relative p-1.5 sm:p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                            <button @click="open = !open" 
+                                    class="hidden lg:inline-flex relative items-center justify-center p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
                                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
                                 </svg>
                                 @if(auth()->user()->getUnreadNotificationsCount() > 0)
-                                    <span class="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
-                                        {{ auth()->user()->getUnreadNotificationsCount() }}
+                                    <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full text-white text-[10px] font-medium flex items-center justify-center px-1">
+                                        {{ auth()->user()->getUnreadNotificationsCount() > 9 ? '9+' : auth()->user()->getUnreadNotificationsCount() }}
                                     </span>
                                 @endif
                             </button>
 
-                            <!-- Notification Dropdown -->
-                            <div x-show="open" @click.away="open = false" x-transition
-                                 class="absolute right-0 mt-2 w-full max-w-[90vw] sm:w-80 lg:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+                            <!-- Notification Dropdown (Desktop only) -->
+                            <div x-show="open" 
+                                @click.away="open = false" 
+                                x-transition
+                                x-cloak
+                                class="absolute right-0 mt-2 w-80 lg:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
                                 <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-between">
                                     <h3 class="font-semibold text-gray-900 dark:text-white">Notifications</h3>
                                     <a href="{{ route('notifications.index') }}" class="text-sm text-purple-600 hover:text-purple-700 font-medium">View All</a>
@@ -100,11 +93,11 @@
                                     @forelse($recentNotifs as $notification)
                                         <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 {{ !$notification->is_read ? 'bg-purple-50/50 dark:bg-purple-900/10' : '' }}">
                                             <a href="{{ $notification->action_url ?? route('notifications.index') }}"
-                                               class="block"
-                                               data-notification-id="{{ $notification->id }}"
-                                               data-is-read="{{ $notification->is_read ? '1' : '0' }}">
+                                            class="block"
+                                            data-notification-id="{{ $notification->id }}"
+                                            data-is-read="{{ $notification->is_read ? '1' : '0' }}">
                                                 <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $notification->title }}</p>
-                                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $notification->message }}</p>
+                                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{{ $notification->message }}</p>
                                                 <p class="text-xs text-gray-500 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                                             </a>
                                         </div>
@@ -116,20 +109,28 @@
                         </div>
 
                         <!-- Profile Dropdown -->
-                        <div class="relative" x-data="{ open: false }">
-                            <button @click="open = !open" class="flex items-center space-x-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full p-1 pr-2 sm:pr-3">
-                                <img class="w-8 h-8 rounded-full" src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}">
-                                <span class="hidden md:block text-gray-900 dark:text-white font-medium truncate max-w-[120px]">{{ auth()->user()->name }}</span>
-                                <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <div class="relative flex-shrink-0" x-data="{ open: false }">
+                            <button @click="open = !open" 
+                                    class="flex items-center space-x-1 sm:space-x-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full p-1 pr-2 sm:pr-3 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                <img class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex-shrink-0" 
+                                    src="{{ auth()->user()->avatar_url }}" 
+                                    alt="{{ auth()->user()->name }}">
+                                <span class="hidden md:block text-gray-900 dark:text-white font-medium truncate max-w-[100px] lg:max-w-[120px]">
+                                    {{ explode(' ', auth()->user()->name)[0] }}
+                                </span>
+                                <svg class="hidden md:block w-4 h-4 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                                 </svg>
                             </button>
 
-                            <div x-show="open" @click.away="open = false" x-transition
-                                 class="absolute right-0 z-50 mt-2 w-56 bg-white dark:bg-gray-700 divide-y divide-gray-100 dark:divide-gray-600 rounded-lg shadow-lg">
+                            <div x-show="open" 
+                                @click.away="open = false" 
+                                x-transition
+                                x-cloak
+                                class="absolute right-0 z-50 mt-2 w-56 bg-white dark:bg-gray-700 divide-y divide-gray-100 dark:divide-gray-600 rounded-lg shadow-lg">
                                 <div class="px-4 py-3">
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ auth()->user()->name }}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ auth()->user()->email }}</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ auth()->user()->name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ auth()->user()->email }}</p>
                                 </div>
                                 <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                                     <li><a href="{{ route('profile.edit') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile Settings</a></li>
@@ -144,8 +145,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
+                    </div>                    
                 </div>
             </div>
         </nav>

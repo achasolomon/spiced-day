@@ -129,7 +129,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Documents</h2>
-                    <a href="{{ route('applicant.documents.index', $application) }}" class="text-sm text-orange-600 hover:text-orange-700 font-medium">View All →</a>
+                    <a href="{{ route('consultant.documents.pending-review', $application) }}" class="text-sm text-orange-600 hover:text-orange-700 font-medium">View All →</a>
                 </div>
                 <div class="p-6">
                     <div class="space-y-3">
@@ -248,7 +248,7 @@ function conductInspection() {
 }
 
 function reviewDocuments() {
-    window.location.href = "{{ route('applicant.documents.index', $application) }}";
+    window.location.href = "{{ route('consultant.documents.pending-review') }}";
 }
 
 function addNote() {

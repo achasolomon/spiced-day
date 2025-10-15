@@ -643,35 +643,50 @@ document.addEventListener('alpine:init', () => {
         },
 
         saveDraft() {
-            const formData = new FormData(this.$refs.applicationForm);
-            formData.append('is_draft', '1');
-            
-            fetch('{{ route("applicant.applications.store") }}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert('Draft saved successfully!');
-                    if (data.redirect) {
-                        window.location.href = data.redirect;
-                    }
-                } else {
-                    alert(data.message || 'Failed to save draft');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to save draft. Please try again.');
-            });
+    // Collect only filled fields
+    const formData = new FormData();
+    
+    // Add CSRF token
+    formData.append('_token', '{{ csrf_token() }}');
+    formData.append('is_draft', '1');
+    
+    // Add all non-empty form data
+    Object.keys(this.formData).forEach(key => {
+        const value = this.formData[key];
+        if (value !== null && value !== undefined && value !== '') {
+            formData.append(key, value);
         }
-    }))
+    });
+    
+    fetch('{{ route("applicant.applications.store") }}', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Draft saved successfully!');
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            }
+        } else {
+            console.error('Server error:', data);
+            alert(data.message || 'Failed to save draft');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to save draft. Please check console for details.');
+    });
+}
+    }
+        
+   
+))
 });
 </script>
 @endpush

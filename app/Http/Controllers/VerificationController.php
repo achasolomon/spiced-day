@@ -51,8 +51,8 @@ class VerificationController extends Controller
         $user->email_verification_token = null; // Invalidate and clear the token
         $user->save();
 
-        // Redirect back to login page with success message
-        return redirect()->route('login')->with('success', 'Email successfully verified! You can now log in.');
+        // Redirect back to dashboard with success message
+        return redirect()->route('dashboard')->with('success', 'Email successfully verified! You can now log in.');
     }
 
     /**
