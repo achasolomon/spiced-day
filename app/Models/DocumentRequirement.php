@@ -16,6 +16,7 @@ class DocumentRequirement extends Model
         'slug',
         'description',
         'instructions',
+        'document_category_id',
         'category',
         'stage',
         'is_required',
@@ -56,6 +57,17 @@ class DocumentRequirement extends Model
         return $this->hasMany(Document::class);
     }
 
+    public function documentCategory()
+{
+    return $this->belongsTo(DocumentCategory::class, 'document_category_id');
+}
+
+    public function applications()
+    {
+        return $this->belongsToMany(Application::class, 'application_document_requirement')
+                    ->withPivot('is_required')
+                    ->withTimestamps();
+    }
     // Scopes
     public function scopeActive($query)
     {

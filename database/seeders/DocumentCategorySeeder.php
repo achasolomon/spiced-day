@@ -1,0 +1,250 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class DocumentCategorySeeder extends Seeder
+{
+    public function run(): void
+    {
+        $categories = [
+            [
+                'name' => 'Educator Certificate',
+                'slug' => 'educator-certificate',
+                'description' => 'Professional education and certification documents',
+                'icon' => 'certificate',
+                'color' => '#3B82F6',
+                'requires_expiry' => true,
+                'default_validity_days' => 365,
+                'sort_order' => 1,
+            ],
+            [
+                'name' => 'CPR & First Aid',
+                'slug' => 'cpr-first-aid',
+                'description' => 'CPR and First Aid certification',
+                'icon' => 'heart-pulse',
+                'color' => '#EF4444',
+                'requires_expiry' => true,
+                'default_validity_days' => 365,
+                'sort_order' => 2,
+            ],
+            [
+                'name' => 'Criminal Record Check',
+                'slug' => 'criminal-record-check',
+                'description' => 'Background check and criminal record verification',
+                'icon' => 'shield-check',
+                'color' => '#10B981',
+                'requires_expiry' => true,
+                'default_validity_days' => 1825, // 5 years
+                'sort_order' => 3,
+            ],
+            [
+                'name' => 'Statement of Disclosure',
+                'slug' => 'statement-of-disclosure',
+                'description' => 'Personal disclosure statements',
+                'icon' => 'file-text',
+                'color' => '#8B5CF6',
+                'requires_expiry' => false,
+                'sort_order' => 4,
+            ],
+            [
+                'name' => 'Fit to Work Assessment',
+                'slug' => 'fit-to-work-assessment',
+                'description' => 'Medical fitness assessment',
+                'icon' => 'stethoscope',
+                'color' => '#06B6D4',
+                'requires_expiry' => true,
+                'default_validity_days' => 730, // 2 years
+                'sort_order' => 5,
+            ],
+            [
+                'name' => 'Home Insurance',
+                'slug' => 'home-insurance',
+                'description' => 'Home and property insurance documents',
+                'icon' => 'home',
+                'color' => '#F59E0B',
+                'requires_expiry' => true,
+                'default_validity_days' => 365,
+                'sort_order' => 6,
+            ],
+            [
+                'name' => 'Food Handler Certificate',
+                'slug' => 'food-handler-certificate',
+                'description' => 'Food safety and handling certification',
+                'icon' => 'utensils',
+                'color' => '#84CC16',
+                'requires_expiry' => true,
+                'default_validity_days' => 1825, // 5 years
+                'sort_order' => 7,
+            ],
+            [
+                'name' => 'Evacuation Plan',
+                'slug' => 'evacuation-plan',
+                'description' => 'Emergency evacuation procedures',
+                'icon' => 'map',
+                'color' => '#DC2626',
+                'requires_expiry' => false,
+                'sort_order' => 8,
+            ],
+            [
+                'name' => 'Emergency Contacts',
+                'slug' => 'emergency-contacts',
+                'description' => 'Emergency contact information',
+                'icon' => 'phone',
+                'color' => '#EC4899',
+                'requires_expiry' => false,
+                'sort_order' => 9,
+            ],
+            [
+                'name' => 'Daily Schedule',
+                'slug' => 'daily-schedule',
+                'description' => 'Program daily schedule',
+                'icon' => 'calendar',
+                'color' => '#6366F1',
+                'requires_expiry' => false,
+                'sort_order' => 10,
+            ],
+            [
+                'name' => 'Program Planning',
+                'slug' => 'program-planning',
+                'description' => 'Educational program planning documents',
+                'icon' => 'clipboard-list',
+                'color' => '#14B8A6',
+                'requires_expiry' => false,
+                'sort_order' => 11,
+            ],
+            [
+                'name' => 'Menu Sample',
+                'slug' => 'menu-sample',
+                'description' => 'Sample meal plans and menus',
+                'icon' => 'book-open',
+                'color' => '#F97316',
+                'requires_expiry' => false,
+                'sort_order' => 12,
+            ],
+            [
+                'name' => 'Transportation Agreement',
+                'slug' => 'transportation-agreement',
+                'description' => 'Transportation policies and agreements',
+                'icon' => 'car',
+                'color' => '#64748B',
+                'requires_expiry' => false,
+                'sort_order' => 13,
+            ],
+            [
+                'name' => 'Cleaning Checklist',
+                'slug' => 'cleaning-checklist',
+                'description' => 'Facility cleaning and maintenance schedules',
+                'icon' => 'spray-can',
+                'color' => '#22D3EE',
+                'requires_expiry' => false,
+                'sort_order' => 14,
+            ],
+            [
+                'name' => 'Child Safety Training',
+                'slug' => 'child-safety-training',
+                'description' => 'Child safety and protection training certification',
+                'icon' => 'shield',
+                'color' => '#A855F7',
+                'requires_expiry' => true,
+                'default_validity_days' => 730, // 2 years
+                'sort_order' => 15,
+            ],
+            [
+                'name' => 'Character References',
+                'slug' => 'character-references',
+                'description' => 'Personal and professional references',
+                'icon' => 'users',
+                'color' => '#0EA5E9',
+                'requires_expiry' => false,
+                'sort_order' => 16,
+            ],
+            [
+                'name' => 'Fee Schedule',
+                'slug' => 'fee-schedule',
+                'description' => 'Program fees and payment schedules',
+                'icon' => 'dollar-sign',
+                'color' => '#059669',
+                'requires_expiry' => false,
+                'sort_order' => 17,
+            ],
+            [
+                'name' => 'Transportation Policy',
+                'slug' => 'transportation-policy',
+                'description' => 'Transportation policies and procedures',
+                'icon' => 'file-check',
+                'color' => '#7C3AED',
+                'requires_expiry' => false,
+                'sort_order' => 18,
+            ],
+            [
+                'name' => 'Critical Incidents',
+                'slug' => 'critical-incidents',
+                'description' => 'Critical incident reports and procedures',
+                'icon' => 'alert-triangle',
+                'color' => '#DC2626',
+                'requires_expiry' => false,
+                'sort_order' => 19,
+            ],
+            [
+                'name' => 'Car Insurance',
+                'slug' => 'car-insurance',
+                'description' => 'Vehicle insurance documentation',
+                'icon' => 'car',
+                'color' => '#2563EB',
+                'requires_expiry' => true,
+                'default_validity_days' => 365,
+                'sort_order' => 20,
+            ],
+            [
+                'name' => 'Liability Insurance',
+                'slug' => 'liability-insurance',
+                'description' => 'General liability insurance coverage',
+                'icon' => 'shield-alert',
+                'color' => '#DB2777',
+                'requires_expiry' => true,
+                'default_validity_days' => 365,
+                'sort_order' => 21,
+            ],
+            [
+                'name' => 'Pet Vaccination',
+                'slug' => 'pet-vaccination',
+                'description' => 'Pet vaccination records',
+                'icon' => 'paw-print',
+                'color' => '#8B5CF6',
+                'requires_expiry' => true,
+                'default_validity_days' => 365,
+                'sort_order' => 22,
+            ],
+            [
+                'name' => 'Other',
+                'slug' => 'other',
+                'description' => 'Miscellaneous documents',
+                'icon' => 'file',
+                'color' => '#6B7280',
+                'requires_expiry' => false,
+                'sort_order' => 999,
+            ],
+        ];
+
+        foreach ($categories as $category) {
+            DB::table('document_categories')->insert([
+                'name' => $category['name'],
+                'slug' => $category['slug'],
+                'description' => $category['description'],
+                'icon' => $category['icon'],
+                'color' => $category['color'],
+                'requires_expiry' => $category['requires_expiry'],
+                'default_validity_days' => $category['default_validity_days'] ?? null,
+                'sort_order' => $category['sort_order'],
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+}
+

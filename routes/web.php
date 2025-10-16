@@ -15,6 +15,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\PostalCodeController;
+use App\Http\Controllers\DocumentRequirementController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -145,6 +146,8 @@ Route::middleware(['auth', 'verified', 'user.type:consultant'])->prefix('consult
         Route::get('/{application}', [ApplicationController::class, 'show'])->name('show');
         Route::put('/{application}', [ApplicationController::class, 'consultantUpdate'])->name('update');
         Route::post('/{application}/assign-to-me', [ApplicationController::class, 'assignToMe'])->name('assign-to-me');
+        Route::post('/{application}/enable-documents', [ApplicationController::class, 'enableDocumentUpload'])->name('enable-documents');
+         Route::post('/{application}/set-required-documents', [ApplicationController::class, 'setRequiredDocuments'])->name('set-required-documents');
         Route::post('/{application}/move-stage', [ApplicationController::class, 'moveStage'])->name('move-stage');
     });
 
@@ -301,6 +304,24 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
         Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
         Route::get('/pending-review', [DocumentController::class, 'pendingReview'])->name('pending-review');
         Route::get('/expired', [DocumentController::class, 'expired'])->name('expired');
+    });
+
+    Route::prefix('document-requirements')->name('document-requirements.')->group(function () {
+        Route::get('/', [DocumentRequirementController::class, 'index'])->name('index');
+        Route::get('/create', [DocumentRequirementController::class, 'create'])->name('create');
+        Route::post('/', [DocumentRequirementController::class, 'store'])->name('store');
+        Route::get('/{documentRequirement}/edit', [DocumentRequirementController::class, 'edit'])->name('edit');
+        Route::put('/{documentRequirement}', [DocumentRequirementController::class, 'update'])->name('update');
+        Route::delete('/{documentRequirement}', [DocumentRequirementController::class, 'destroy'])->name('destroy');
+    });
+
+    // Document Categories Management
+    Route::prefix('document-categories')->name('document-categories.')->group(function () {
+        Route::resource('/', DocumentCategoryController::class);
+        Route::post('{documentCategory}/toggle-status', [DocumentCategoryController::class, 'toggleStatus'])
+            ->name('toggle-status');
+
+        Route::resource('document-types', DocumentTypeController::class);
     });
 
     // Audit Logs / Activity Log

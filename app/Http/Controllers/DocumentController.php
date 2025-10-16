@@ -21,7 +21,8 @@ class DocumentController extends Controller
         $this->statusService = $statusService;
     }
 
-    public function index(Application $application){
+    public function index(Application $application)
+    {
         if (auth()->user()->isApplicant()) {
             if ($application->user_id !== auth()->id()) {
                 abort(403, 'Unauthorized access to this application.');
@@ -34,22 +35,41 @@ class DocumentController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        $requiredDocuments = $application->getRequiredDocumentsForStage();
+        // Get requirements assigned by consultant for this specific application
+        $requiredDocuments = $application->documentRequirements()
+            ->wherePivot('is_required', true)
+            ->where('is_active', true)
+            ->get();
         
+        // If no specific requirements assigned, use stage defaults
+        if ($requiredDocuments->isEmpty()) {
+            $requiredDocuments = DocumentRequirement::where('stage', $application->current_stage)
+                ->where('is_required', true)
+                ->where('is_active', true)
+                ->get();
+        }
+        
+        // Get all uploaded documents
         $uploadedDocuments = $application->documents()
-            ->with(['uploadedBy', 'reviewedBy'])
+            ->with(['uploadedBy', 'reviewedBy', 'documentRequirement'])
             ->latest()
             ->get()
-            ->groupBy('category');
+            ->groupBy('document_requirement_id'); // Group by requirement ID instead of category
         
-        $uploadedCategories = $application->documents()
+        // Get IDs of requirements that have been uploaded
+        $uploadedRequirementIds = $application->documents()
             ->where('status', '!=', 'rejected')
-            ->pluck('category')
+            ->whereNotNull('document_requirement_id')
+            ->pluck('document_requirement_id')
             ->unique()
             ->toArray();
         
-        $pendingDocuments = array_diff($requiredDocuments, $uploadedCategories);
+        // Calculate pending documents (required but not uploaded)
+        $pendingDocuments = $requiredDocuments->filter(function($req) use ($uploadedRequirementIds) {
+            return !in_array($req->id, $uploadedRequirementIds);
+        });
         
+        // Document categories for the select dropdown (kept for backward compatibility)
         $documentCategories = [
             'criminal_record_check' => 'Criminal Record Check',
             'cpr_first_aid' => 'CPR & First Aid Certificate',
@@ -72,105 +92,123 @@ class DocumentController extends Controller
             'other' => 'Other Documents',
         ];
 
+        // Check if document upload is allowed
+        $canUploadDocuments = in_array($application->status, [
+            ApplicationStatus::DOCUMENTS_PENDING->value,
+            ApplicationStatus::DOCUMENTS_SUBMITTED->value,
+            ApplicationStatus::DOCUMENTS_APPROVED->value,
+        ]);
+
         return view('applicant.documents.index', compact(
             'application',
             'requiredDocuments',
             'uploadedDocuments',
             'pendingDocuments',
-            'documentCategories'
+            'documentCategories',
+            'canUploadDocuments'
         ));
     }
 
-    public function store(Request $request, Application $application)
+   public function store(Request $request, Application $application)
     {
-        if ($application->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access to this application.');
-        }
+    if ($application->user_id !== auth()->id()) {
+        abort(403, 'Unauthorized access to this application.');
+    }
 
-        $request->validate([
-            'files' => 'required|array|min:1',
-            'files.*' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-            'documents' => 'required|array',
-            'documents.*.name' => 'required|string|max:255',
-            'documents.*.category' => 'required|string',
-            'documents.*.description' => 'nullable|string|max:500',
-            'documents.*.issue_date' => 'nullable|date|before_or_equal:today',
-            'documents.*.expiry_date' => 'nullable|date|after:documents.*.issue_date',
-        ]);
+    // Check if application status allows document uploads
+    $allowedStatuses = [
+        ApplicationStatus::DOCUMENTS_PENDING->value,
+        ApplicationStatus::DOCUMENTS_SUBMITTED->value,
+        ApplicationStatus::DOCUMENTS_APPROVED->value,
+    ];
+    if (!in_array($application->status, $allowedStatuses)) {
+        return back()->with('error', 'Document uploads are not allowed at this stage. Please wait for consultant approval.');
+    }
 
-        $uploadedCount = 0;
-        $errors = [];
+    $request->validate([
+        'files' => 'required|array|min:1',
+        'files.*' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+        'documents' => 'required|array',
+        'documents.*.name' => 'required|string|max:255',
+        'documents.*.category' => 'required|string',
+        'documents.*.description' => 'nullable|string|max:500',
+        'documents.*.issue_date' => 'nullable|date|before_or_equal:today',
+        'documents.*.expiry_date' => 'nullable|date|after:documents.*.issue_date',
+    ]);
 
-        DB::beginTransaction();
-        try {
-            $files = $request->file('files');
-            $documentsData = $request->input('documents');
+    $uploadedCount = 0;
+    $errors = [];
 
-            foreach ($files as $index => $file) {
-                try {
-                    $documentData = $documentsData[$index] ?? [];
-                    
-                    $fileName = time() . '_' . $index . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
-                    $filePath = $file->storeAs('documents/' . $application->id, $fileName, 'private');
+    DB::beginTransaction();
+    try {
+        $files = $request->file('files');
+        $documentsData = $request->input('documents');
 
-                    Document::create([
-                        'application_id' => $application->id,
-                        'uploaded_by' => auth()->id(),
-                        'name' => $documentData['name'],
-                        'category' => $documentData['category'],
-                        'type' => 'required_document',
-                        'description' => $documentData['description'] ?? null,
-                        'original_filename' => $file->getClientOriginalName(),
-                        'file_path' => $filePath,
-                        'file_type' => $file->getClientOriginalExtension(),
-                        'mime_type' => $file->getMimeType(),
-                        'file_size' => $file->getSize(),
-                        'file_hash' => hash_file('sha256', $file->getRealPath()),
-                        'issue_date' => $documentData['issue_date'] ?? null,
-                        'expiry_date' => $documentData['expiry_date'] ?? null,
-                        'expires' => !empty($documentData['expiry_date']),
-                        'status' => 'uploaded',
-                    ]);
-
-                    $uploadedCount++;
-                    
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to upload {$file->getClientOriginalName()}: " . $e->getMessage();
-                    \Log::error('Document upload failed', [
-                        'file' => $file->getClientOriginalName(),
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-
-            // Update application status if documents were uploaded
-            if ($uploadedCount > 0) {
-                // Check if this is the first document upload
-                $totalDocuments = $application->documents()->count();
+        foreach ($files as $index => $file) {
+            try {
+                $documentData = $documentsData[$index] ?? [];
                 
-                if ($totalDocuments === $uploadedCount && $application->status === ApplicationStatus::DOCUMENTS_PENDING->value) {
-                    // First documents uploaded
-                    $this->statusService->transitionTo(
-                        $application,
-                        ApplicationStatus::DOCUMENTS_SUBMITTED,
-                        "Uploaded {$uploadedCount} document(s)"
-                    );
-                }
+                $fileName = time() . '_' . $index . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
+                $filePath = $file->storeAs('documents/' . $application->id, $fileName, 'private');
+
+                Document::create([
+                    'application_id' => $application->id,
+                    'uploaded_by' => auth()->id(),
+                    'name' => $documentData['name'],
+                    'category' => $documentData['category'],
+                    'type' => 'required_document',
+                    'description' => $documentData['description'] ?? null,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientOriginalExtension(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'file_hash' => hash_file('sha256', $file->getRealPath()),
+                    'issue_date' => $documentData['issue_date'] ?? null,
+                    'expiry_date' => $documentData['expiry_date'] ?? null,
+                    'expires' => !empty($documentData['expiry_date']),
+                    'status' => 'uploaded',
+                ]);
+
+                $uploadedCount++;
+                
+            } catch (\Exception $e) {
+                $errors[] = "Failed to upload {$file->getClientOriginalName()}: " . $e->getMessage();
+                \Log::error('Document upload failed', [
+                    'file' => $file->getClientOriginalName(),
+                    'error' => $e->getMessage()
+                ]);
             }
-
-            DB::commit();
-
-            $message = $uploadedCount === count($files) 
-                ? "Successfully uploaded {$uploadedCount} document(s)!" 
-                : "Uploaded {$uploadedCount} of " . count($files) . " documents. Some failed.";
-
-            return back()->with($errors ? 'warning' : 'success', $message);
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            \Log::error('Bulk document upload failed', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Failed to upload documents. Please try again.');
         }
+
+        // Update application status if documents were uploaded
+        if ($uploadedCount > 0) {
+            // Check if this is the first document upload
+            $totalDocuments = $application->documents()->count();
+            
+            if ($totalDocuments === $uploadedCount && $application->status === ApplicationStatus::DOCUMENTS_PENDING->value) {
+                // First documents uploaded
+                $this->statusService->transitionTo(
+                    $application,
+                    ApplicationStatus::DOCUMENTS_SUBMITTED,
+                    "Uploaded {$uploadedCount} document(s)"
+                );
+            }
+        }
+
+        DB::commit();
+
+        $message = $uploadedCount === count($files) 
+            ? "Successfully uploaded {$uploadedCount} document(s)!" 
+            : "Uploaded {$uploadedCount} of " . count($files) . " documents. Some failed.";
+
+        return back()->with($errors ? 'warning' : 'success', $message);
+
+    } catch (\Exception $e) {
+        DB::rollback();
+        \Log::error('Bulk document upload failed', ['error' => $e->getMessage()]);
+        return back()->with('error', 'Failed to upload documents. Please try again.');
+    }
     }
 
     public function approve(Document $document)

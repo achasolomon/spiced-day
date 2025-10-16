@@ -20,8 +20,8 @@ return new class extends Migration
             $table->text('description');
             $table->text('instructions')->nullable();
             
-            // Classification
-            $table->string('category');
+            // Classification - NOW USING FOREIGN KEY
+            $table->foreignId('document_category_id')->nullable()->constrained()->onDelete('set null');
             $table->enum('stage', [
                 'application',
                 'meet_and_greet',
@@ -61,7 +61,7 @@ return new class extends Migration
             
             // Indexes
             $table->index(['stage', 'is_required', 'sort_order']);
-            $table->index(['category', 'is_active']);
+            $table->index(['document_category_id', 'is_active']);
         });
     }
 

@@ -31,11 +31,33 @@ class ApplicationStatusService
             return false;
         }
 
+        // Define status to current_stage mapping
+        $statusToStageMap = [
+            'draft' => 'intake',
+            'submitted' => 'intake',
+            // 'phone_interview_scheduled' => 'phone_interview',
+            // 'phone_interview_completed' => 'phone_interview',
+            'meet_and_greet_scheduled' => 'meet_and_greet',
+            'meet_and_greet_completed' => 'meet_and_greet',
+            'initial_inspection_scheduled' => 'initial_inspection',
+            'initial_inspection_completed' => 'initial_inspection',
+            'documents_pending' => 'document_collection',
+            'documents_submitted' => 'document_collection',
+            'second_inspection_scheduled' => 'second_inspection',
+            'second_inspection_completed' => 'second_inspection',
+            'contract_signing_scheduled' => 'contract_signing',
+            'contract_signed' => 'contract_signing',
+            'approved' => 'approved',
+            'rejected' => 'approved', // Assuming rejected stays in last stage
+            'cancelled' => 'approved', // Assuming cancelled stays in last stage
+        ];
+
         DB::beginTransaction();
         try {
-            // Update application status
+            // Update application status and current_stage
             $application->update([
                 'status' => $newStatus->value,
+                'current_stage' => $statusToStageMap[$newStatus->value] ?? 'intake',
             ]);
 
             // Create audit log
@@ -46,6 +68,7 @@ class ApplicationStatusService
                 [
                     'old_status' => $oldStatus->value,
                     'new_status' => $newStatus->value,
+                    'new_stage' => $application->current_stage,
                     'notes' => $notes
                 ]
             );
@@ -58,7 +81,8 @@ class ApplicationStatusService
             Log::info('Application status changed successfully', [
                 'application_id' => $application->id,
                 'from' => $oldStatus->value,
-                'to' => $newStatus->value
+                'to' => $newStatus->value,
+                'stage' => $application->current_stage
             ]);
 
             return true;
@@ -146,12 +170,11 @@ class ApplicationStatusService
         $messages = [
             ApplicationStatus::SUBMITTED->value => 'Your application has been submitted successfully. We will review it shortly.',
             ApplicationStatus::MEET_AND_GREET_SCHEDULED->value => 'Your Meet & Greet appointment has been scheduled. Please check your appointments.',
-            ApplicationStatus::MEET_AND_GREET_COMPLETED->value => 'Your Meet & Greet has been completed. We will schedule your initial inspection soon.',
+            ApplicationStatus::MEET_AND_GREET_COMPLETED->value => 'Your Meet & Greet has been completed. We will schedule your Initial Inspection soon.',
             ApplicationStatus::INITIAL_INSPECTION_SCHEDULED->value => 'Your Initial Inspection has been scheduled. Please prepare your home accordingly.',
             ApplicationStatus::INITIAL_INSPECTION_COMPLETED->value => 'Your Initial Inspection has been completed. You can now upload required documents.',
             ApplicationStatus::DOCUMENTS_PENDING->value => 'Please upload all required documents to proceed with your application.',
             ApplicationStatus::DOCUMENTS_SUBMITTED->value => 'Thank you for submitting your documents. Our team will review them shortly.',
-            ApplicationStatus::DOCUMENTS_APPROVED->value => 'All your documents have been approved. We will schedule your Second Inspection soon.',
             ApplicationStatus::SECOND_INSPECTION_SCHEDULED->value => 'Your Second Inspection has been scheduled.',
             ApplicationStatus::SECOND_INSPECTION_COMPLETED->value => 'Your Second Inspection has been completed successfully. We will schedule contract signing.',
             ApplicationStatus::CONTRACT_SIGNING_SCHEDULED->value => 'Your Contract Signing appointment has been scheduled.',
@@ -171,7 +194,7 @@ class ApplicationStatusService
 
         return match($status) {
             ApplicationStatus::SUBMITTED => "New application $appNumber from $appName has been submitted.",
-            ApplicationStatus::MEET_AND_GREET_COMPLETED => "Meet & Greet completed for $appNumber. Ready to schedule initial inspection.",
+            ApplicationStatus::MEET_AND_GREET_COMPLETED => "Meet & Greet completed for $appNumber. Ready to schedule Initial Inspection.",
             ApplicationStatus::INITIAL_INSPECTION_COMPLETED => "Initial Inspection completed for $appNumber. Applicant can now upload documents.",
             ApplicationStatus::DOCUMENTS_SUBMITTED => "Documents submitted for $appNumber. Please review.",
             ApplicationStatus::SECOND_INSPECTION_COMPLETED => "Second Inspection completed for $appNumber. Ready for contract signing.",
@@ -185,7 +208,7 @@ class ApplicationStatusService
         return match($status) {
             ApplicationStatus::REJECTED,
             ApplicationStatus::CANCELLED,
-            ApplicationStatus::APPROVED => 'high',
+            ApplicationStatus::APPROVED,
             ApplicationStatus::DOCUMENTS_PENDING,
             ApplicationStatus::MEET_AND_GREET_SCHEDULED,
             ApplicationStatus::INITIAL_INSPECTION_SCHEDULED,
@@ -195,3 +218,4 @@ class ApplicationStatusService
         };
     }
 }
+?>

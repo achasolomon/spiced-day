@@ -10,6 +10,8 @@ use App\Models\Consultant;
 use App\Models\PostalCodeRange;
 use App\Mail\ConsultantAssigned;
 use App\Models\Notification;
+use App\Models\DocumentRequirement;
+use App\Mail\RequiredDocumentsSet;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,9 +27,8 @@ class ApplicationController extends Controller
     }
 
     /**
- * Applicant view of their own applications
- */
-
+     * Applicant view of their own applications
+     */
     public function create()
     {
         if (auth()->user()->hasActiveApplication()) {
@@ -68,7 +69,17 @@ class ApplicationController extends Controller
         }
         
         if ($user->user_type == 'consultant') {
-            return view('consultant.applications.show', compact('application'));
+            $documentRequirements = DocumentRequirement::where('is_active', true)
+                ->where('stage', 'document_submission')
+                ->orderBy('sort_order')
+                ->get();
+                
+            Log::debug('Document Requirements fetched for application', [
+                'application_id' => $application->id,
+                'count' => $documentRequirements->count(),
+            ]);
+            
+            return view('consultant.applications.show', compact('application', 'documentRequirements'));
         }
         
         return view('applicant.applications.show', compact('application'));
@@ -156,7 +167,7 @@ class ApplicationController extends Controller
             if (!$isDraft) {
                 // Auto-assign consultant based on postal code
                 $consultant = $this->assignConsultantByPostalCode($application->postal_code);
-                 if ($consultant) {
+                if ($consultant) {
                     $application->update(['consultant_id' => $consultant->user_id]);
                     
                     // Reload the consultant relationship
@@ -234,7 +245,7 @@ class ApplicationController extends Controller
      * Submit application (convert from draft to submitted)
      */
     public function submit(Application $application)
-        {   
+    {   
         if ($application->user_id !== auth()->id()) {
             abort(403);
         }
@@ -540,31 +551,24 @@ class ApplicationController extends Controller
     }
 
     // Trigger document collection
-    public function enableDocumentUpload(Application $application)
+    public function enableDocumentUpload(Request $request, Application $application)
     {
-        if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
-            abort(403);
+        if (auth()->user()->isConsultant() && $application->consultant_id !== auth()->id()) {
+            abort(403, 'You are not assigned to this application.');
+        } elseif (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized access.');
         }
 
-        if ($application->status !== ApplicationStatus::INITIAL_INSPECTION_COMPLETED->value) {
-            return back()->with('error', 'Initial inspection must be completed first.');
-        }
-
-        DB::beginTransaction();
         try {
             $this->statusService->transitionTo(
                 $application,
-                ApplicationStatus::DOCUMENTS_PENDING,
-                "Document upload enabled by consultant"
+                \App\Enums\ApplicationStatus::DOCUMENTS_PENDING,
+                'Document upload enabled by consultant'
             );
-
-            DB::commit();
-
-            return back()->with('success', 'Document upload enabled for applicant.');
-
+            return back()->with('success', 'Document uploads enabled for this application.');
         } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'Failed to enable document upload.');
+            \Log::error('Failed to enable document upload', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Failed to enable document uploads. Please try again.');
         }
     }
 
@@ -626,10 +630,8 @@ class ApplicationController extends Controller
         return view('admin.applications.index', compact('applications', 'consultants', 'stats'));
     }
 
-        /**
+    /**
      * Assign consultant to application (Admin only)
-     * This method replaces the existing assignConsultant method in ApplicationController.php
-     * Location: Around line 578 in your ApplicationController.php
      */
     public function assignConsultant(Request $request, Application $application)
     {
@@ -697,64 +699,66 @@ class ApplicationController extends Controller
     }
 
     /**
- * Send notifications when consultant is assigned to application
- * Replace the existing notifyConsultantAssignment method in ApplicationController.php
- */
-protected function notifyConsultantAssignment(Application $application)
-{
-    if (!$application->consultant_id) {
-        Log::warning('Cannot send notification: No consultant assigned', [
-            'application_id' => $application->id
-        ]);
-        return;
-    }
-
-    try {
-        // Reload the consultant relationship (consultant is a User)
-        $application->load('consultant');
-        
-        if (!$application->consultant) {
-            Log::error('Consultant relationship not found', [
-                'application_id' => $application->id,
-                'consultant_id' => $application->consultant_id
+     * Send notifications when consultant is assigned to application
+     */
+    protected function notifyConsultantAssignment(Application $application)
+    {
+        if (!$application->consultant_id) {
+            Log::warning('Cannot send notification: No consultant assigned', [
+                'application_id' => $application->id
             ]);
             return;
         }
 
-        // Create in-app notification
-        Notification::create([
-            'user_id' => $application->consultant_id, // The consultant's user_id
-            'application_id' => $application->id,
-            'type' => 'consultant_assigned',
-            'title' => 'New Application Assigned',
-            'message' => "Application #{$application->application_number} from {$application->educator_first_name} {$application->educator_last_name} has been assigned to you.",
-            'priority' => 'high',
-            'action_url' => route('consultant.applications.show', $application->id),
-            'action_text' => 'View Application',
-            'requires_action' => true,
-        ]);
+        try {
+            // Reload the consultant relationship (consultant is a User)
+            $application->load('consultant');
+            
+            if (!$application->consultant) {
+                Log::error('Consultant relationship not found', [
+                    'application_id' => $application->id,
+                    'consultant_id' => $application->consultant_id
+                ]);
+                return;
+            }
 
-        // Send email notification
-        Mail::to($application->consultant->email)
-            ->send(new ConsultantAssigned($application));
+            // Create in-app notification
+            Notification::create([
+                'user_id' => $application->consultant_id, // The consultant's user_id
+                'application_id' => $application->id,
+                'type' => 'consultant_assigned',
+                'title' => 'New Application Assigned',
+                'message' => "Application #{$application->application_number} from {$application->educator_first_name} {$application->educator_last_name} has been assigned to you.",
+                'priority' => 'high',
+                'action_url' => route('consultant.applications.show', $application->id),
+                'action_text' => 'View Application',
+                'requires_action' => true,
+            ]);
 
-        Log::info('Consultant assignment notifications sent successfully', [
-            'application_id' => $application->id,
-            'consultant_id' => $application->consultant_id,
-            'consultant_email' => $application->consultant->email
-        ]);
+            // Send email notification
+            Mail::to($application->consultant->email)
+                ->send(new ConsultantAssigned($application));
 
-    } catch (\Exception $e) {
-        Log::error('Failed to send consultant assignment notifications', [
-            'application_id' => $application->id,
-            'consultant_id' => $application->consultant_id ?? null,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        // Don't throw exception - notification failure shouldn't stop the assignment
+            Log::info('Consultant assignment notifications sent successfully', [
+                'application_id' => $application->id,
+                'consultant_id' => $application->consultant_id,
+                'consultant_email' => $application->consultant->email
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send consultant assignment notifications', [
+                'application_id' => $application->id,
+                'consultant_id' => $application->consultant_id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Don't throw exception - notification failure shouldn't stop the assignment
+        }
     }
-}
 
+    /**
+     * Admin view of a single application
+     */
     public function adminShow(Application $application)
     {
         // Load all necessary relationships
@@ -800,7 +804,7 @@ protected function notifyConsultantAssignment(Application $application)
 
         // Get timeline/activity (audit logs + status changes)
         $timeline = $application->auditLogs()
-            ->with('user')
+            >with('user')
             ->latest()
             ->take(20)
             ->get();
@@ -843,9 +847,9 @@ protected function notifyConsultantAssignment(Application $application)
         ));
     }
 
-  /**
- * Show audit log for an application
- */
+    /**
+     * Show audit log for an application
+     */
     public function auditLog(Application $application)
     {
         // Authorization check
@@ -919,4 +923,69 @@ protected function notifyConsultantAssignment(Application $application)
         ));
     }
 
+    /**
+     * Set required documents for an application based on current stage
+     */
+    public function setRequiredDocuments(Request $request, Application $application)
+    {
+        if (auth()->user()->isConsultant() && $application->consultant_id !== auth()->id()) {
+            abort(403, 'You are not assigned to this application.');
+        } elseif (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $request->validate([
+            'required_documents' => 'nullable|array',
+            'required_documents.*' => 'exists:document_requirements,id',
+        ]);
+
+        try {
+            // Clear existing requirements
+            $application->documentRequirements()->detach();
+
+            // Add new requirements
+            $requiredDocuments = $request->input('required_documents', []);
+            if ($requiredDocuments) {
+                $application->documentRequirements()->attach($requiredDocuments, ['is_required' => true]);
+            }
+
+            // Notify applicant
+            $this->notifyApplicantDocumentsSet($application, $requiredDocuments);
+
+            return back()->with('success', 'Required documents updated successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to set required documents', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Failed to update required documents. Please try again.');
+        }
+    }
+
+    protected function notifyApplicantDocumentsSet(Application $application, array $requiredDocuments)
+    {
+        $requirements = DocumentRequirement::whereIn('id', $requiredDocuments)->pluck('name')->toArray();
+        $message = empty($requirements)
+            ? 'No specific documents are required at this time.'
+            : 'Please upload the following required documents: ' . implode(', ', $requirements) . '.';
+
+        Notification::create([
+            'user_id' => $application->user_id,
+            'application_id' => $application->id,
+            'type' => 'required_documents_set',
+            'title' => 'Required Documents Updated',
+            'message' => $message,
+            'priority' => 'high',
+            'action_url' => route('applicant.documents.index', $application),
+        ]);
+
+        try {
+            Mail::to($application->user->email)->send(
+                new RequiredDocumentsSet($application, $message)
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send required documents email', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
 }
+?>

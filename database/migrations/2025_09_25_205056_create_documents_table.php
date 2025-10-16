@@ -27,45 +27,11 @@ return new class extends Migration
             $table->bigInteger('file_size');
             $table->string('file_hash')->nullable();
             
-            // Document Classification
-            $table->enum('category', [
-                'educator_certificate',
-                'cpr_first_aid',
-                'criminal_record_check',
-                'statement_of_disclosure',
-                'fit_to_work_assessment',
-                'home_insurance',
-                'food_handler_certificate',
-                'evacuation_plan',
-                'emergency_contacts',
-                'daily_schedule',
-                'program_planning',
-                'menu_sample',
-                'transportation_agreement',
-                'cleaning_checklist',
-                'child_safety_training',
-                'character_references',
-                'fee_schedule',
-                'transportation_policy',
-                'critical_incidents',
-                'car_insurance',
-                'liability_insurance',
-                'pet_vaccination',
-                'other'
-            ]);
+            // Document Classification - NOW USING FOREIGN KEYS
+            $table->foreignId('document_category_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('document_type_id')->nullable()->constrained()->onDelete('set null');
             
-            $table->enum('type', [
-                'required_document',
-                'supporting_document', 
-                'inspection_photo',
-                'certificate',
-                'form',
-                'agreement',
-                'policy',
-                'reference'
-            ])->default('required_document');
-            
-            // Status and Review
+            // Status - Keep as enum since these are workflow states
             $table->enum('status', [
                 'uploaded',
                 'under_review', 
@@ -101,8 +67,8 @@ return new class extends Migration
             $table->softDeletes();
             
             // Indexes
-            $table->index(['application_id', 'category', 'status']);
-            $table->index(['category', 'expiry_date']);
+            $table->index(['application_id', 'document_category_id', 'status']);
+            $table->index(['document_category_id', 'expiry_date']);
             $table->index(['uploaded_by', 'created_at']);
             $table->index('file_hash');
         });

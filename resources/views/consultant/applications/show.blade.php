@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="space-y-6">
-    <!-- Header with Actions -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div class="flex items-center gap-4">
             <a href="{{ route('consultant.applications.index') }}" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
@@ -17,10 +16,8 @@
                 <p class="text-gray-600 dark:text-gray-400 mt-1">Application #{{ $application->application_number }}</p>
             </div>
         </div>
-        
         <div class="flex items-center gap-3">
-            <button     
-               @click="window.dispatchEvent(new CustomEvent('open-appointment-modal', {
+            <button @click="window.dispatchEvent(new CustomEvent('open-appointment-modal', {
                     detail: {
                         applicationId: {{ $application->id }},
                         applicantId: {{ $application->user_id }},
@@ -36,12 +33,11 @@
         </div>
     </div>
 
-    <!-- Status & Progress Bar -->
     <div class="bg-gradient-to-r from-white-500 to-white-600 rounded-2xl p-6 text-white shadow-lg">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <p class="text-purple-600 text-sm font-medium">Current Status</p>
-                <p class="text-2xl  text-purple-600 font-bold mt-1">{{ $application->status_display }}</p>
+                <p class="text-2xl text-purple-600 font-bold mt-1">{{ $application->status_display }}</p>
                 <p class="text-purple-600 text-sm mt-2">{{ $application->current_stage_display }}</p>
             </div>
             <div class="w-full md:w-64">
@@ -56,10 +52,19 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm text-green-800 dark:text-green-200">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Main Content -->
         <div class="lg:col-span-2 space-y-6">
-            <!-- Applicant Information -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Applicant Information</h2>
@@ -94,7 +99,6 @@
                 </div>
             </div>
 
-            <!-- Home Details -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Home Details</h2>
@@ -125,7 +129,39 @@
                 </div>
             </div>
 
-            <!-- Documents -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Required Documents</h2>
+                </div>
+                <div class="p-6">
+                    <form action="{{ route('consultant.applications.set-required-documents', $application) }}" method="POST">
+                        @csrf
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach($documentRequirements as $req)
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" 
+                                           name="required_documents[]" 
+                                           value="{{ $req->id }}"
+                                           id="doc-{{ $req->id }}"
+                                           {{ $application->documentRequirements->contains($req->id) ? 'checked' : '' }}
+                                           class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
+                                    <label for="doc-{{ $req->id }}" class="text-sm text-gray-700 dark:text-gray-300">
+                                        {{ $req->name }}
+                                        @if($req->help_text)
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">({{ $req->help_text }})</span>
+                                        @endif
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button type="submit" 
+                                class="mt-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors text-sm">
+                            Save Required Documents
+                        </button>
+                    </form>
+                </div>
+            </div>
+
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Documents</h2>
@@ -161,13 +197,11 @@
             </div>
         </div>
 
-        <!-- Sidebar -->
         <div class="space-y-6">
-            <!-- Quick Actions -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
                 <div class="space-y-2">
-                    <button  @click="window.dispatchEvent(new CustomEvent('open-appointment-modal', {
+                    <button @click="window.dispatchEvent(new CustomEvent('open-appointment-modal', {
                                 detail: {
                                     applicationId: {{ $application->id }},
                                     applicantId: {{ $application->user_id }},
@@ -192,10 +226,23 @@
                         </svg>
                         Review Documents
                     </button>
+                    @if($application->status !== 'documents_pending' && $application->status !== 'documents_submitted' && $application->status !== 'documents_approved')
+                        <form action="{{ route('consultant.applications.enable-documents', $application) }}" 
+                              method="POST" 
+                              onsubmit="return confirm('Enable document uploads for this application?')">
+                            @csrf
+                            <button type="submit" 
+                                    class="w-full px-4 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-sm font-medium text-left flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm5 12a1 1 0 100-2 1 1 0 000 2zm-3-3a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
+                                </svg>
+                                Enable Document Upload
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
 
-            <!-- Timeline -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Activity Timeline</h3>
                 <div class="space-y-4">
@@ -208,7 +255,6 @@
                             </div>
                         </div>
                     @endif
-                    
                     @foreach($application->appointments()->latest('scheduled_at')->take(3)->get() as $appointment)
                         <div class="flex gap-3">
                             <div class="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
@@ -218,12 +264,10 @@
                             </div>
                         </div>
                     @endforeach
-                    
                     <a href="#" class="text-sm text-orange-600 hover:text-orange-700 font-medium">View Full History →</a>
                 </div>
             </div>
 
-            <!-- Notes -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Consultant Notes</h3>
                 <textarea rows="4" 
@@ -237,12 +281,10 @@
     </div>
 </div>
 
-
 <x-appointments.schedule-modal />
 
 @push('scripts')
 <script>
-
 function conductInspection() {
     window.location.href = "{{ route('consultant.inspections.create', ['application_id' => $application->id]) }}";
 }

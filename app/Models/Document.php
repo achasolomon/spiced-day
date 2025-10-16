@@ -68,9 +68,9 @@ class Document extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
-    public function documentRequirement()
+     public function documentRequirement()
     {
-        return $this->belongsTo(DocumentRequirement::class);
+        return $this->belongsTo(DocumentRequirement::class, 'document_requirement_id');
     }
 
     public function replacesDocument()
