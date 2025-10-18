@@ -72,9 +72,8 @@ class Consultant extends Model
 
     public function assignedApplications()
     {
-        return $this->hasMany(Application::class, 'consultant_id');
+        return $this->hasMany(Application::class, 'consultant_id', 'user_id');
     }
-
     public function appointments()
     {
         return $this->hasMany(Appointment::class, 'consultant_id');
@@ -129,15 +128,41 @@ class Consultant extends Model
                $this->accepts_new_applications &&
                $this->active_applications < $this->max_concurrent_applications;
     }
-
     public function updateWorkloadMetrics()
     {
+        // Define what statuses count as "active"
+        $activeStatuses = [
+            'submitted',
+            'under_review',
+            'meet_and_greet_scheduled',
+            'meet_and_greet_completed',
+            'initial_inspection_scheduled',
+            'initial_inspection_completed',
+            'documents_pending',
+            'documents_submitted',
+            'documents_approved',
+            'second_inspection_scheduled',
+            'second_inspection_completed',
+            'final_review'
+        ];
+
+        // Count active applications assigned to this consultant
+        $activeCount = \App\Models\Application::where('consultant_id', $this->user_id)
+            ->whereIn('status', $activeStatuses)
+            ->count();
+
+        // Count pending inspections
+        $pendingInspections = $this->appointments()
+            ->whereIn('type', ['initial_inspection', 'second_inspection'])
+            ->where('status', 'scheduled')
+            ->count();
+
+        // Update the consultant record
         $this->update([
-            'active_applications' => $this->assignedApplications()->active()->count(),
-            'pending_inspections' => $this->appointments()
-                ->whereIn('type', ['initial_inspection', 'second_inspection'])
-                ->where('status', 'scheduled')
-                ->count()
+            'active_applications' => $activeCount,
+            'pending_inspections' => $pendingInspections
         ]);
+
+        return $activeCount;
     }
 }

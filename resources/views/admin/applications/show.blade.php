@@ -161,14 +161,20 @@
             </div>
 
             <!-- Documents Section -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Documents</h2>
-                    <a href="{{ route('applicant.documents.index', $application) }}" 
-                       class="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400">
+             <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Documents</h2>
+                @if(auth()->user()->isAdmin())
+                    <a href="{{ route('admin.documents.application', $application) }}" 
+                    class="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400">
                         View All →
                     </a>
-                </div>
+                @else
+                    <a href="{{ route('applicant.documents.index', $application) }}" 
+                    class="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400">
+                        View All →
+                    </a>
+                @endif
+            </div>
 
                 @if($missingDocuments)
                     <div class="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -177,7 +183,7 @@
                         </p>
                         <ul class="text-sm text-yellow-700 dark:text-yellow-400 space-y-1">
                             @foreach($missingDocuments as $missing)
-                                <li>• {{ ucwords(str_replace('_', ' ', $missing)) }}</li>
+                                <li>{{ $missing->name }}</li>
                             @endforeach
                         </ul>
                     </div>

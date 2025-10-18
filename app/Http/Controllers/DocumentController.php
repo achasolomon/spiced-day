@@ -151,11 +151,16 @@ class DocumentController extends Controller
                 $fileName = time() . '_' . $index . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
                 $filePath = $file->storeAs('documents/' . $application->id, $fileName, 'private');
 
+              // Get the document requirement
+                $requirement = DocumentRequirement::find($documentData['category']);
+
                 Document::create([
                     'application_id' => $application->id,
                     'uploaded_by' => auth()->id(),
+                    'document_requirement_id' => $requirement->id ?? null,
+                    'document_category_id' => $requirement->document_category_id ?? null,
+                    'document_type_id' => $requirement->document_type_id ?? null,
                     'name' => $documentData['name'],
-                    'category' => $documentData['category'],
                     'type' => 'required_document',
                     'description' => $documentData['description'] ?? null,
                     'original_filename' => $file->getClientOriginalName(),
@@ -233,7 +238,7 @@ class DocumentController extends Controller
             $application = $document->application;
             $allDocumentsApproved = $application->documents()
                 ->where('status', '!=', 'approved')
-                ->where('type', 'required_document')
+                ->where('document_type_id', 'required_document')
                 ->doesntExist();
 
             if ($allDocumentsApproved && $application->status === ApplicationStatus::DOCUMENTS_SUBMITTED->value) {
@@ -564,4 +569,82 @@ public function adminIndex(Request $request)
 
     return view('admin.documents.index', compact('documents', 'stats', 'categories'));
 }
+
+/**
+ * Admin view documents for a specific application
+ */
+public function adminApplicationDocuments(Request $request, Application $application)
+{
+    if (!auth()->user()->isAdmin()) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    // Get all documents for this application with relationships
+    $query = Document::where('application_id', $application->id)
+        ->with(['uploadedBy', 'reviewedBy', 'documentRequirement'])
+        ->latest();
+
+    // Filter by status if provided
+    if ($request->has('status') && $request->status !== '') {
+        $query->where('status', $request->status);
+    }
+
+    // Search by document name
+    if ($request->has('search') && $request->search !== '') {
+        $query->where('name', 'like', "%{$request->search}%");
+    }
+
+    // Filter by date range
+    if ($request->has('date_from') && $request->date_from !== '') {
+        $query->whereDate('created_at', '>=', $request->date_from);
+    }
+    if ($request->has('date_to') && $request->date_to !== '') {
+        $query->whereDate('created_at', '<=', $request->date_to);
+    }
+
+    $documents = $query->paginate(20)->withQueryString();
+
+    // Statistics for this application
+    $stats = [
+        'total' => Document::where('application_id', $application->id)->count(),
+        'uploaded' => Document::where('application_id', $application->id)->where('status', 'uploaded')->count(),
+        'under_review' => Document::where('application_id', $application->id)->where('status', 'under_review')->count(),
+        'approved' => Document::where('application_id', $application->id)->where('status', 'approved')->count(),
+        'rejected' => Document::where('application_id', $application->id)->where('status', 'rejected')->count(),
+        'expired' => Document::where('application_id', $application->id)
+                            ->where('expires', true)
+                            ->where('expiry_date', '<', now())
+                            ->count(),
+    ];
+
+    $categories = [
+        'criminal_record_check' => 'Criminal Record Check',
+        'cpr_first_aid' => 'CPR & First Aid Certificate',
+        'educator_certificate' => 'Educator Certificate',
+        'home_insurance' => 'Home Insurance',
+        'car_insurance' => 'Vehicle Insurance',
+        'liability_insurance' => 'Liability Insurance',
+        'statement_of_disclosure' => 'Statement of Disclosure',
+        'fit_to_work_assessment' => 'Fit to Work Assessment',
+        'food_handler_certificate' => 'Food Handler Certificate',
+        'pet_vaccination' => 'Pet Vaccination Records',
+        'evacuation_plan' => 'Evacuation Plan',
+        'emergency_contacts' => 'Emergency Contacts',
+        'daily_schedule' => 'Daily Schedule',
+        'program_planning' => 'Program Planning',
+        'menu_sample' => 'Menu Sample',
+        'character_references' => 'Character References',
+        'fee_schedule' => 'Fee Schedule',
+        'transportation_policy' => 'Transportation Policy',
+        'other' => 'Other Documents',
+    ];
+
+    return view('admin.documents.application', compact(
+        'application',
+        'documents',
+        'stats',
+        'categories'
+    ));
+}
+
 }

@@ -94,115 +94,115 @@ class AppointmentController extends Controller
         return view('appointments.create', compact('application', 'consultants'));
     }
 
-  public function store(Request $request)
-{
-    if (auth()->user()->user_type != 'consultant') {
-        abort(403, 'Only consultants can schedule appointments.');
-    }
-
-    $validated = $request->validate([
-        'application_id' => 'required|exists:applications,id',
-        'consultant_id' => 'required|exists:users,id',
-        'type' => 'required|in:meet_and_greet,initial_inspection,second_inspection,final_inspection,contract_signing,follow_up',
-        'title' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'scheduled_at' => 'required|date|after:now',
-        'duration' => 'required|integer|min:30|max:480',
-        'location_type' => 'required|string|in:home,office,virtual,other',
-        'location_address' => 'required_unless:location_type,virtual|nullable|string',
-        'virtual_meeting_link' => 'required_if:location_type,virtual|nullable|url',
-        'location_notes' => 'nullable|string',
-        'preparation_notes' => 'nullable|string',
-        'consultant_confirmed' => 'nullable|boolean',
-    ]);
-
-    $application = Application::findOrFail($validated['application_id']);
-    
-    if ($application->consultant_id !== auth()->id() && auth()->user()->user_type !== 'admin') {
-        abort(403, 'You do not have access to this application.');
-    }
-
-    $scheduledAt = Carbon::parse($validated['scheduled_at']);
-    $endsAt = $scheduledAt->copy()->addMinutes((int) $validated['duration']);
-
-    // Handle location address based on type
-    $locationAddress = $validated['location_type'] === 'virtual' 
-        ? ($validated['virtual_meeting_link'] ?? null)
-        : ($validated['location_address'] ?? null);
-
-    DB::beginTransaction();
-    try {
-        $appointment = Appointment::create([
-            'application_id' => $validated['application_id'],
-            'consultant_id' => $validated['consultant_id'],
-            'applicant_id' => $application->user_id,
-            'type' => $validated['type'],
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'scheduled_at' => $scheduledAt,
-            'ends_at' => $endsAt,
-            'duration' => $validated['duration'],
-            'location_type' => $validated['location_type'],
-            'location_address' => $locationAddress,
-            'location_notes' => $validated['location_notes'] ?? null,
-            'preparation_notes' => $validated['preparation_notes'] ?? null,
-            'status' => 'scheduled',
-            'consultant_confirmed' => $request->has('consultant_confirmed'),
-            'applicant_confirmed' => false,
-        ]);
-
-        // Update application status based on appointment type
-        $newStatus = $this->getStatusForAppointmentType($validated['type']);
-        if ($newStatus) {
-            $this->statusService->transitionTo(
-                $application, 
-                $newStatus,
-                "Appointment scheduled for {$validated['type']}"
-            );
+    public function store(Request $request)
+    {
+        if (auth()->user()->user_type != 'consultant') {
+            abort(403, 'Only consultants can schedule appointments.');
         }
 
-        // Create notification for applicant
-        \App\Models\Notification::create([
-            'user_id' => $application->user_id,
-            'application_id' => $application->id,
-            'type' => 'appointment_scheduled',
-            'title' => 'New Appointment Scheduled',
-            'message' => "A new appointment has been scheduled: {$appointment->title} on {$scheduledAt->format('F j, Y \a\t g:i A')}",
-            'priority' => 'high',
-            'action_url' => route('applicant.appointments.show', $appointment),
-            'data' => [
-                'appointment_id' => $appointment->id,
-                'type' => $appointment->type,
-                'scheduled_at' => $scheduledAt->toIso8601String(),
-            ],
+        $validated = $request->validate([
+            'application_id' => 'required|exists:applications,id',
+            'consultant_id' => 'required|exists:users,id',
+            'type' => 'required|in:meet_and_greet,initial_inspection,second_inspection,final_inspection,contract_signing,follow_up',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'scheduled_at' => 'required|date|after:now',
+            'duration' => 'required|integer|min:30|max:480',
+            'location_type' => 'required|string|in:home,office,virtual,other',
+            'location_address' => 'required_unless:location_type,virtual|nullable|string',
+            'virtual_meeting_link' => 'required_if:location_type,virtual|nullable|url',
+            'location_notes' => 'nullable|string',
+            'preparation_notes' => 'nullable|string',
+            'consultant_confirmed' => 'nullable|boolean',
         ]);
 
-        // Log the appointment creation
-        \App\Models\AuditLog::log(
-            'appointment_created',
-            $appointment,
-            "Appointment created: {$appointment->title}",
-            ['type' => $appointment->type]
-        );
-
-        DB::commit();
-
-        return redirect()->route('consultant.calendar')
-            ->with('success', 'Appointment scheduled successfully!');
-
-    } catch (\Exception $e) {
-        DB::rollback();
-        \Log::error('Appointment creation failed', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'validated_data' => $validated
-        ]);
+        $application = Application::findOrFail($validated['application_id']);
         
-        return back()
-            ->withInput()
-            ->withErrors(['error' => 'Failed to schedule appointment: ' . $e->getMessage()]);
+        if ($application->consultant_id !== auth()->id() && auth()->user()->user_type !== 'admin') {
+            abort(403, 'You do not have access to this application.');
+        }
+
+        $scheduledAt = Carbon::parse($validated['scheduled_at']);
+        $endsAt = $scheduledAt->copy()->addMinutes((int) $validated['duration']);
+
+        // Handle location address based on type
+        $locationAddress = $validated['location_type'] === 'virtual' 
+            ? ($validated['virtual_meeting_link'] ?? null)
+            : ($validated['location_address'] ?? null);
+
+        DB::beginTransaction();
+        try {
+            $appointment = Appointment::create([
+                'application_id' => $validated['application_id'],
+                'consultant_id' => $validated['consultant_id'],
+                'applicant_id' => $application->user_id,
+                'type' => $validated['type'],
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'scheduled_at' => $scheduledAt,
+                'ends_at' => $endsAt,
+                'duration' => $validated['duration'],
+                'location_type' => $validated['location_type'],
+                'location_address' => $locationAddress,
+                'location_notes' => $validated['location_notes'] ?? null,
+                'preparation_notes' => $validated['preparation_notes'] ?? null,
+                'status' => 'scheduled',
+                'consultant_confirmed' => $request->has('consultant_confirmed'),
+                'applicant_confirmed' => false,
+            ]);
+
+            // Update application status based on appointment type
+            $newStatus = $this->getStatusForAppointmentType($validated['type']);
+            if ($newStatus) {
+                $this->statusService->transitionTo(
+                    $application, 
+                    $newStatus,
+                    "Appointment scheduled for {$validated['type']}"
+                );
+            }
+
+            // Create notification for applicant
+            \App\Models\Notification::create([
+                'user_id' => $application->user_id,
+                'application_id' => $application->id,
+                'type' => 'appointment_scheduled',
+                'title' => 'New Appointment Scheduled',
+                'message' => "A new appointment has been scheduled: {$appointment->title} on {$scheduledAt->format('F j, Y \a\t g:i A')}",
+                'priority' => 'high',
+                'action_url' => route('applicant.appointments.show', $appointment),
+                'data' => [
+                    'appointment_id' => $appointment->id,
+                    'type' => $appointment->type,
+                    'scheduled_at' => $scheduledAt->toIso8601String(),
+                ],
+            ]);
+
+            // Log the appointment creation
+            \App\Models\AuditLog::log(
+                'appointment_created',
+                $appointment,
+                "Appointment created: {$appointment->title}",
+                ['type' => $appointment->type]
+            );
+
+            DB::commit();
+
+            return redirect()->route('consultant.calendar')
+                ->with('success', 'Appointment scheduled successfully!');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Appointment creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'validated_data' => $validated
+            ]);
+            
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to schedule appointment: ' . $e->getMessage()]);
+        }
     }
-}
 
     public function edit(Appointment $appointment)
     {
@@ -510,7 +510,6 @@ public function calendar()
             default => null,
         };
     }
-
     private function getStatusForCompletedAppointment(string $type): ?ApplicationStatus
     {
         return match($type) {
@@ -574,6 +573,24 @@ public function adminIndex(Request $request)
         ->get();
 
     return view('admin.appointments.index', compact('appointments', 'stats', 'consultants'));
+}
+
+
+public function sendManualReminder(Appointment $appointment)
+{
+    try {
+        // Send to applicant
+        Mail::to($appointment->applicant->email)
+            ->send(new AppointmentReminder24Hours($appointment, 'applicant'));
+
+        // Send to consultant
+        Mail::to($appointment->consultant->email)
+            ->send(new AppointmentReminder24Hours($appointment, 'consultant'));
+
+        return back()->with('success', 'Reminder sent successfully!');
+    } catch (\Exception $e) {
+        return back()->with('error', 'Failed to send reminder: ' . $e->getMessage());
+    }
 }
 
   

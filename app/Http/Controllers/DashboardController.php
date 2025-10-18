@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\Application;
 use App\Models\Appointment;
 use App\Models\Document;
+use App\Models\DocumentRequirement;
 use App\Models\Inspection;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -60,11 +61,14 @@ class DashboardController extends Controller
                 $requiredDocs = $activeApplication->getRequiredDocumentsForStage();
                 $uploadedCategories = $activeApplication->documents()
                     ->where('status', '!=', 'rejected')
-                    ->pluck('category')
+                    ->whereNotNull('document_requirement_id')
+                    ->pluck('document_requirement_id')
                     ->toArray();
                     
                 // Fixed: Use array_diff instead of whereNotIn
-                $pendingDocuments = array_diff($requiredDocs, $uploadedCategories);
+                $pendingDocuments = array_diff($requiredDocs->pluck('id')->toArray(), $uploadedCategories);
+
+
             }
         
         // Get notifications

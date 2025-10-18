@@ -6,6 +6,7 @@ use App\Models\Consultant;
 use App\Models\User;
 use App\Models\Region;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -148,77 +149,120 @@ class ConsultantController extends Controller
         return view('admin.consultants.create', compact('users'));
     }
 
-    public function store(Request $request){
-    $validated = $request->validate([
-        'user_id' => 'required|exists:users,id',
-        'employee_id' => 'required|string|unique:consultants,employee_id',
-        'department' => 'nullable|string|max:255',
-        'position_title' => 'required|string|max:255',
-        'hire_date' => 'required|date',
-        'certifications' => 'nullable|array',
-        'certifications.*' => 'nullable|string|max:255',
-        'specializations' => 'nullable|array',
-        'specializations.*' => 'nullable|string|max:255',
-        'qualifications' => 'nullable|string',
-        'languages' => 'nullable|array',
-        'languages.*' => 'nullable|string|max:255',
-        'service_areas' => 'nullable|array',
-        'service_areas.*' => 'nullable|string|max:255',
-        'max_concurrent_applications' => 'required|integer|min:1|max:50',
-        'work_phone' => 'nullable|string|max:20',
-        'emergency_contact_name' => 'nullable|string|max:255',
-        'emergency_contact_phone' => 'nullable|string|max:20',
-        'can_approve_applications' => 'nullable|boolean',
-        'can_conduct_inspections' => 'nullable|boolean',
-        'can_view_all_applications' => 'nullable|boolean',
-        'bio' => 'nullable|string',
-        'internal_notes' => 'nullable|string',
-        'regions' => 'required|array|min:1',
-        'regions.*' => 'exists:regions,id',
-    ]);
+   // app/Http/Controllers/ConsultantController.php
 
-    DB::beginTransaction();
-    try {
-        // Create the consultant
-        $consultant = Consultant::create([
-            'user_id' => $validated['user_id'],
-            'employee_id' => $validated['employee_id'],
-            'department' => $validated['department'],
-            'position_title' => $validated['position_title'],
-            'hire_date' => $validated['hire_date'],
-            'employment_status' => 'active',
-            'certifications' => array_filter($validated['certifications'] ?? [], fn($value) => !empty($value)),
-            'specializations' => array_filter($validated['specializations'] ?? [], fn($value) => !empty($value)),
-            'qualifications' => $validated['qualifications'] ?? null,
-            'languages' => array_filter($validated['languages'] ?? [], fn($value) => !empty($value)),
-            'service_areas' => array_filter($validated['service_areas'] ?? [], fn($value) => !empty($value)),
-            'max_concurrent_applications' => $validated['max_concurrent_applications'],
-            'accepts_new_applications' => true,
-            'work_phone' => $validated['work_phone'],
-            'emergency_contact_name' => $validated['emergency_contact_name'],
-            'emergency_contact_phone' => $validated['emergency_contact_phone'],
-            'can_approve_applications' => $request->has('can_approve_applications'),
-            'can_conduct_inspections' => $request->has('can_conduct_inspections') ? true : false,
-            'can_view_all_applications' => $request->has('can_view_all_applications'),
-            'bio' => $validated['bio'],
-            'internal_notes' => $validated['internal_notes'] ?? null,
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            // User fields
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:20',
+            
+            // Consultant fields
+            'employee_id' => 'required|string|unique:consultants,employee_id',
+            'department' => 'nullable|string|max:255',
+            'position_title' => 'required|string|max:255',
+            'hire_date' => 'required|date',
+            'certifications' => 'nullable|array',
+            'certifications.*' => 'nullable|string|max:255',
+            'specializations' => 'nullable|array',
+            'specializations.*' => 'nullable|string|max:255',
+            'qualifications' => 'nullable|string',
+            'languages' => 'nullable|array',
+            'languages.*' => 'nullable|string|max:255',
+            'service_areas' => 'nullable|array',
+            'service_areas.*' => 'nullable|string|max:255',
+            'max_concurrent_applications' => 'required|integer|min:1|max:50',
+            'work_phone' => 'nullable|string|max:20',
+            'emergency_contact_name' => 'nullable|string|max:255',
+            'emergency_contact_phone' => 'nullable|string|max:20',
+            'can_approve_applications' => 'nullable|boolean',
+            'can_conduct_inspections' => 'nullable|boolean',
+            'can_view_all_applications' => 'nullable|boolean',
+            'bio' => 'nullable|string',
+            'internal_notes' => 'nullable|string',
+            'regions' => 'required|array|min:1',
+            'regions.*' => 'exists:regions,id',
         ]);
 
-        // IMPORTANT: Sync the regions to the pivot table
-        $consultant->regions()->sync($validated['regions']);
+        DB::beginTransaction();
+        try {
+            // Step 1: Create the user
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'city' => $validated['city'] ?? null,
+                'province' => $validated['province'] ?? null,
+                'postal_code' => $validated['postal_code'] ?? null,
+                'user_type' => 'consultant',
+                'is_active' => true,
+                'email_verified_at' => now(), // Auto-verify
+            ]);
 
-        // Log the creation
-        \App\Models\AuditLog::log('consultant_created', $consultant, 'New consultant profile created');
+            // Step 2: Create the consultant profile
+            $consultant = $user->consultant()->create([
+                'employee_id' => $validated['employee_id'],
+                'department' => $validated['department'] ?? null,
+                'position_title' => $validated['position_title'],
+                'hire_date' => $validated['hire_date'],
+                'employment_status' => 'active',
+                'certifications' => array_filter($validated['certifications'] ?? [], fn($value) => !empty($value)),
+                'specializations' => array_filter($validated['specializations'] ?? [], fn($value) => !empty($value)),
+                'qualifications' => $validated['qualifications'] ?? null,
+                'languages' => array_filter($validated['languages'] ?? [], fn($value) => !empty($value)),
+                'service_areas' => array_filter($validated['service_areas'] ?? [], fn($value) => !empty($value)),
+                'max_concurrent_applications' => $validated['max_concurrent_applications'],
+                'accepts_new_applications' => true,
+                'work_phone' => $validated['work_phone'] ?? null,
+                'emergency_contact_name' => $validated['emergency_contact_name'] ?? null,
+                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+                'can_approve_applications' => $request->boolean('can_approve_applications'),
+                'can_conduct_inspections' => $request->boolean('can_conduct_inspections'),
+                'can_view_all_applications' => $request->boolean('can_view_all_applications'),
+                'bio' => $validated['bio'] ?? null,
+                'internal_notes' => $validated['internal_notes'] ?? null,
+            ]);
 
-        DB::commit();
+            // Step 3: Sync regions
+            $consultant->regions()->sync($validated['regions']);
 
-        return redirect()->route('admin.consultants.index')
-            ->with('success', 'Consultant created successfully!');
-    } catch (\Exception $e) {
-        DB::rollback();
-        Log::error('Consultant creation failed', ['error' => $e->getMessage()]);
-        return back()->withInput()->withErrors(['error' => 'Failed to create consultant. Please try again.']);
-    }
+            // Step 4: Assign role (the User model boot method should handle this, but just in case)
+            if (class_exists(\Spatie\Permission\Models\Role::class)) {
+                $user->assignRole('consultant');
+            }
+
+            // Step 5: Log the creation
+            \App\Models\AuditLog::log(
+                'consultant_created', 
+                $consultant, 
+                'New consultant profile created for user: ' . $user->name
+            );
+
+            DB::commit();
+
+            return redirect()->route('admin.consultants.index')
+                ->with('success', 'Consultant created successfully! User can now log in with their credentials.');
+                
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Consultant creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to create consultant: ' . $e->getMessage()]);
+        }
     }
 
     public function edit(Consultant $consultant)
@@ -226,8 +270,8 @@ class ConsultantController extends Controller
         return view('admin.consultants.edit', compact('consultant'));
     }
 
-   public function update(Request $request, Consultant $consultant)
-{
+    public function update(Request $request, Consultant $consultant)
+    {
         $validated = $request->validate([
             'employee_id' => 'required|string|unique:consultants,employee_id,' . $consultant->id,
             'department' => 'nullable|string|max:255',

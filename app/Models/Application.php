@@ -143,10 +143,22 @@
             return $query->where('status', $status);
         }
 
-        public function scopeActive($query)
-        {
-            return $query->whereNotIn('status', ['approved', 'rejected', 'cancelled']);
-        }
+        public function scopeActive($query){
+                return $query->whereIn('status', [
+                    'submitted',
+                    'under_review',
+                    'meet_and_greet_scheduled',
+                    'meet_and_greet_completed',
+                    'initial_inspection_scheduled',
+                    'initial_inspection_completed',
+                    'documents_pending',
+                    'documents_submitted',
+                    'documents_approved',
+                    'second_inspection_scheduled',
+                    'second_inspection_completed',
+                    'final_review'
+                ]);
+            }
 
         public function scopeForConsultant($query, $consultantId)
         {

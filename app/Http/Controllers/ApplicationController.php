@@ -804,7 +804,7 @@ class ApplicationController extends Controller
 
         // Get timeline/activity (audit logs + status changes)
         $timeline = $application->auditLogs()
-            >with('user')
+            ->with('user')
             ->latest()
             ->take(20)
             ->get();
@@ -812,15 +812,18 @@ class ApplicationController extends Controller
         // Get required documents for current stage
         $requiredDocuments = $application->getRequiredDocumentsForStage();
         
-        // Get uploaded document categories
-        $uploadedCategories = $application->documents()
+        // Get uploaded document requirement IDs
+        $uploadedRequirementIds = $application->documents()
             ->where('status', '!=', 'rejected')
-            ->pluck('category')
+            ->whereNotNull('document_requirement_id')
+            ->pluck('document_requirement_id')
             ->unique()
             ->toArray();
         
-        // Calculate missing documents
-        $missingDocuments = array_diff($requiredDocuments, $uploadedCategories);
+        // Calculate missing documents (requirements not yet uploaded)
+        $missingDocuments = $requiredDocuments->filter(function($req) use ($uploadedRequirementIds) {
+            return !in_array($req->id, $uploadedRequirementIds);
+        });
 
         // Get next scheduled appointment
         $nextAppointment = $application->appointments()
@@ -840,7 +843,7 @@ class ApplicationController extends Controller
             'consultants',
             'timeline',
             'requiredDocuments',
-            'uploadedCategories',
+            'uploadedRequirementIds',
             'missingDocuments',
             'nextAppointment',
             'latestInspection'

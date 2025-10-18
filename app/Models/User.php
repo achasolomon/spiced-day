@@ -219,7 +219,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->applications()->whereIn('status', [
             'draft', 'submitted', 'under_review', 'initial_inspection_scheduled',
-            'initial_inspection_completed', 'documents_pending', 'documents_completed',
+            'initial_inspection_completed', 'documents_pending', 'documents_submitted', 'documents_approved',
             'second_inspection_scheduled', 'second_inspection_completed',
             'final_review'
         ])->exists();
@@ -229,7 +229,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->applications()->whereIn('status', [
             'draft', 'submitted', 'meet_and_greet_scheduled','meet_and_greet_completed', 'initial_inspection_scheduled',
-            'initial_inspection_completed', 'documents_pending', 'documents_completed',
+            'initial_inspection_completed', 'documents_pending', 'documents_submitted', 'documents_approved',
             'second_inspection_scheduled', 'second_inspection_completed',
             'final_review'
         ])->latest()->first();

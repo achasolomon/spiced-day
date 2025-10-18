@@ -131,10 +131,10 @@
                                                 :name="'documents[' + index + '][category]'"
                                                 required
                                                 class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500">
-                                            <option value="">Category *</option>
-                                            @foreach($documentCategories as $key => $label)
-                                                <option value="{{ $key }}">{{ $label }}</option>
-                                            @endforeach
+                                            <option value="">Select Document *</option>
+                                                @foreach($pendingDocuments as $req)
+                                                    <option value="{{ $req->id }}">{{ $req->name }}</option>
+                                                @endforeach
                                         </select>
                                         
                                         <input type="text" 

@@ -9,6 +9,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Consultant Dashboard') - SPICE'd Dayhome Agency</title>
 
+     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -230,5 +233,50 @@
     </div>
 
     @stack('scripts')
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    // Handle notification clicks
+    document.addEventListener('click', function(e) {
+        const notificationLink = e.target.closest('a[data-notification-id]');
+        
+        if (notificationLink) {
+            const notificationId = notificationLink.dataset.notificationId;
+            const isRead = notificationLink.dataset.isRead === '1';
+            
+            // If notification is already read, allow normal navigation
+            if (isRead) {
+                return;
+            }
+            
+            // Prevent default navigation
+            e.preventDefault();
+            
+            const targetUrl = notificationLink.href;
+            
+            // Mark notification as read
+            fetch(`/notifications/${notificationId}/mark-read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Navigate to the target URL after marking as read
+                    window.location.href = targetUrl;
+                }
+            })
+            .catch(error => {
+                console.error('Error marking notification as read:', error);
+                // Navigate anyway even if there's an error
+                window.location.href = targetUrl;
+            });
+        }
+    });
+});
+    </script>
 </body>
 </html>

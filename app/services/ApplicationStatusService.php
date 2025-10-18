@@ -35,21 +35,20 @@ class ApplicationStatusService
         $statusToStageMap = [
             'draft' => 'intake',
             'submitted' => 'intake',
-            // 'phone_interview_scheduled' => 'phone_interview',
-            // 'phone_interview_completed' => 'phone_interview',
             'meet_and_greet_scheduled' => 'meet_and_greet',
             'meet_and_greet_completed' => 'meet_and_greet',
             'initial_inspection_scheduled' => 'initial_inspection',
             'initial_inspection_completed' => 'initial_inspection',
             'documents_pending' => 'document_collection',
             'documents_submitted' => 'document_collection',
+            'documents_approved' => 'document_collection',
             'second_inspection_scheduled' => 'second_inspection',
             'second_inspection_completed' => 'second_inspection',
             'contract_signing_scheduled' => 'contract_signing',
             'contract_signed' => 'contract_signing',
             'approved' => 'approved',
-            'rejected' => 'approved', // Assuming rejected stays in last stage
-            'cancelled' => 'approved', // Assuming cancelled stays in last stage
+            'rejected' => 'approved',
+            'cancelled' => 'approved',
         ];
 
         DB::beginTransaction();

@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SPICE'd Dayhome Agency - Professional Childcare Licensing</title>
+    
+    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+
+
     <meta name="description" content="Alberta's premier dayhome licensing agency. Expert guidance through the complete certification process with 98% approval rate and 15+ years experience.">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 

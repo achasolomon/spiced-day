@@ -5,6 +5,7 @@ namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
+
 class Kernel extends HttpKernel
 {
     /**
@@ -66,5 +67,6 @@ class Kernel extends HttpKernel
     'application.owner' => \App\Http\Middleware\EnsureApplicationOwner::class,
     'consultant.assigned' => \App\Http\Middleware\EnsureConsultantAssigned::class,
 ];
+
 
 }

@@ -206,7 +206,7 @@ Route::middleware(['auth', 'verified', 'user.type:consultant'])->prefix('consult
 */
 
 Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'admin'])->name(name: 'dashboard');
 
     // Users
     Route::prefix('users')->name('users.')->group(function () {
@@ -294,14 +294,16 @@ Route::middleware(['auth', 'verified', 'user.type:admin'])->prefix('admin')->nam
     });
 
     // Documents
-    Route::prefix('documents')->name('documents.')->group(function () {
+      Route::prefix('documents')->name('documents.')->group(function () {
         Route::get('/', [DocumentController::class, 'adminIndex'])->name('index');
+                Route::get('/application/{application}', [DocumentController::class, 'adminApplicationDocuments'])->name('application');
         Route::get('/{document}', [DocumentController::class, 'show'])->name('show');
-        Route::post('/{document}/approve', [DocumentController::class, 'approve'])->name('approve');
-        Route::post('/{document}/reject', [DocumentController::class, 'reject'])->name('reject');
+        Route::get('/{document}/preview', [DocumentController::class, 'preview'])->name('preview');
+        Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
+        Route::patch('/{document}/approve', [DocumentController::class, 'approve'])->name('approve');
+        Route::patch('/{document}/reject', [DocumentController::class, 'reject'])->name('reject');
         Route::post('/{document}/request-revision', [DocumentController::class, 'requestRevision'])->name('request-revision');
         Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy');
-        Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
         Route::get('/pending-review', [DocumentController::class, 'pendingReview'])->name('pending-review');
         Route::get('/expired', [DocumentController::class, 'expired'])->name('expired');
     });
