@@ -9,16 +9,45 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - SPICE'd Dayhome Agency</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+    <link rel="icon" type="image/jpg" href="{{ asset('logo.jpeg') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
+    
+    <style>
+        body {
+            font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+    </style>
+    
+     <!-- Timezone Detection Script -->
+    <script>
+        (function() {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            sessionStorage.setItem('userTimezone', timezone);
+            if (window.fetch) {
+                const originalFetch = window.fetch;
+                window.fetch = function(...args) {
+                    const options = args[1] || {};
+                    options.headers = options.headers || {};
+                    options.headers['X-User-Timezone'] = timezone;
+                    return originalFetch.apply(this, [args[0], options]);
+                };
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('input[name="user_timezone"]').forEach(el => {
+                    el.value = timezone;
+                });
+            });
+        })();
+    </script>
 </head>
 
 <body class="font-sans antialiased bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
@@ -137,7 +166,14 @@
                                 <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                                     <li><a href="{{ route('profile.edit') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile Settings</a></li>
                                     <li><a href="{{ route('notifications.index') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Notifications</a></li>
-                                    <li><a href="{{ route('applicant.help') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Help & Support</a></li>
+                                    <li>
+                                      <a href="https://support.spicedchildcare.com/portal/en/home"
+                                         target="_blank"
+                                         class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                         Help & Support
+                                      </a>
+                                    </li>
+                                    
                                 </ul>
                                 <div class="py-2">
                                     <form method="POST" action="{{ route('logout') }}">
@@ -204,14 +240,42 @@
                             <span class="ml-3">Appointments</span>
                         </a>
                     </li>
+                @if(auth()->user()->hasActiveApplication())
+                        @php
+                            $application = auth()->user()->getActiveApplication();
+                            $statusValue = $application->status instanceof \BackedEnum ? $application->status->value : $application->status;
+                            $isActive = in_array($statusValue, ['active', 'compliance_inspection_due', 'compliance_inspection_scheduled', 'compliance_inspection_completed', 'suspended']);
+                        @endphp
+                        
+                        @if($isActive)
+                        <li>
+                            <a href="{{ route('applicant.profile.index') }}"
+                            class="flex items-center p-2 rounded-lg text-white hover:bg-white/10 {{ request()->routeIs('applicant.profile.*') ? 'bg-white/20' : '' }}">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="ml-3">Educator Profile</span>
+                                <span class="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                    Active
+                                </span>
+                            </a>
+                        </li>
+                        @endif
+                    @endif
 
+                    <!-- Help & Support -->
                     <li>
-                        <a href="{{ route('applicant.help') }}"
-                           class="flex items-center p-2 rounded-lg text-white hover:bg-white/10 {{ request()->routeIs('applicant.help') ? 'bg-white/20' : '' }}">
+                        <a href="https://support.spicedchildcare.com/portal/en/home" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex items-center p-2 rounded-lg text-white hover:bg-white/10 {{ request()->routeIs('applicant.help') ? 'bg-white/20' : '' }}">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                             </svg>
                             <span class="ml-3">Help & Support</span>
+                            <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
                         </a>
                     </li>
                 </ul>
@@ -226,6 +290,9 @@
         </main>
 
     </div>
+
+    <!-- Toast Container -->
+    <x-toast-container />
 
     @stack('scripts')
     <script>

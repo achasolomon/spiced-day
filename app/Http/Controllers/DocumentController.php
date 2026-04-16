@@ -23,12 +23,15 @@ class DocumentController extends Controller
 
     public function index(Application $application)
     {
+        // Refresh to get the latest status
+        $application->refresh();
+        
         if (auth()->user()->isApplicant()) {
-            if ($application->user_id !== auth()->id()) {
+            if ($application->user_id != auth()->id()) {
                 abort(403, 'Unauthorized access to this application.');
             }
         } elseif (auth()->user()->isConsultant()) {
-            if ($application->consultant_id !== auth()->id()) {
+            if ($application->consultant_id != auth()->id()) {
                 abort(403, 'You are not assigned to this application.');
             }
         } elseif (!auth()->user()->isAdmin()) {
@@ -49,6 +52,16 @@ class DocumentController extends Controller
                 ->get();
         }
         
+        // If still no requirements, get all active requirements for document_submission stage
+        // This ensures applicants can always see available document types to upload
+        if ($requiredDocuments->isEmpty() && $application->current_stage === 'document_submission') {
+            $requiredDocuments = DocumentRequirement::where('stage', 'document_submission')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get();
+        }
+        
         // Get all uploaded documents
         $uploadedDocuments = $application->documents()
             ->with(['uploadedBy', 'reviewedBy', 'documentRequirement'])
@@ -65,6 +78,7 @@ class DocumentController extends Controller
             ->toArray();
         
         // Calculate pending documents (required but not uploaded)
+        // If no specific requirements were assigned, show all available requirements
         $pendingDocuments = $requiredDocuments->filter(function($req) use ($uploadedRequirementIds) {
             return !in_array($req->id, $uploadedRequirementIds);
         });
@@ -93,11 +107,28 @@ class DocumentController extends Controller
         ];
 
         // Check if document upload is allowed
+       $canUploadDocuments = false;
+
+if (auth()->user()->isApplicant()) {
+
+    // NORMAL WORKFLOW (status-driven)
+    if (!$application->workflow_concluded) {
         $canUploadDocuments = in_array($application->status, [
             ApplicationStatus::DOCUMENTS_PENDING->value,
             ApplicationStatus::DOCUMENTS_SUBMITTED->value,
             ApplicationStatus::DOCUMENTS_APPROVED->value,
         ]);
+    }
+
+    // LEGACY / COMPLETED WORKFLOW (requirement-driven)
+    if (
+        $application->workflow_concluded &&
+        $requiredDocuments->isNotEmpty()
+    ) {
+        $canUploadDocuments = true;
+    }
+}
+
 
         return view('applicant.documents.index', compact(
             'application',
@@ -110,48 +141,85 @@ class DocumentController extends Controller
     }
 
    public function store(Request $request, Application $application)
-    {
-    if ($application->user_id !== auth()->id()) {
+{
+    // Authorization
+    if ($application->user_id != auth()->id()) {
         abort(403, 'Unauthorized access to this application.');
     }
 
-    // Check if application status allows document uploads
     $allowedStatuses = [
         ApplicationStatus::DOCUMENTS_PENDING->value,
         ApplicationStatus::DOCUMENTS_SUBMITTED->value,
         ApplicationStatus::DOCUMENTS_APPROVED->value,
     ];
-    if (!in_array($application->status, $allowedStatuses)) {
-        return back()->with('error', 'Document uploads are not allowed at this stage. Please wait for consultant approval.');
+
+    $canBypassForLegacy = false;
+    if ($application->imported_by_consultant) {
+        $consultantHasUploaded = $application->documents()
+            ->where('uploaded_by', $application->imported_by_consultant)
+            ->exists();
+
+        if (!$consultantHasUploaded && auth()->user()->isApplicant() && $application->user_id == auth()->id()) {
+            $canBypassForLegacy = true;
+        }
     }
 
+    if (!in_array($application->status, $allowedStatuses) && !$canBypassForLegacy) {
+        return back()->with('error', 'Document uploads are not allowed at this stage.');
+    }
+
+    \Log::info('Document upload attempt', [
+        'user_id' => auth()->id(),
+        'application_id' => $application->id,
+        'file_count' => count($request->file('files') ?? []),
+        'documents_count' => count($request->input('documents', [])),
+    ]);
+
     $request->validate([
-        'files' => 'required|array|min:1',
+        'files' => 'required|array|min:1|max:20',
         'files.*' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-        'documents' => 'required|array',
-        'documents.*.name' => 'required|string|max:255',
-        'documents.*.category' => 'required|string',
-        'documents.*.description' => 'nullable|string|max:500',
-        'documents.*.issue_date' => 'nullable|date|before_or_equal:today',
-        'documents.*.expiry_date' => 'nullable|date|after:documents.*.issue_date',
     ]);
 
     $uploadedCount = 0;
     $errors = [];
 
     DB::beginTransaction();
+
     try {
         $files = $request->file('files');
-        $documentsData = $request->input('documents');
+        $documentsData = $request->input('documents', []);
 
         foreach ($files as $index => $file) {
             try {
-                $documentData = $documentsData[$index] ?? [];
-                
-                $fileName = time() . '_' . $index . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
-                $filePath = $file->storeAs('documents/' . $application->id, $fileName, 'private');
+                $documentData = $documentsData[$index] ?? null;
 
-              // Get the document requirement
+                if (!$documentData) {
+                    throw new \Exception('Missing document metadata.');
+                }
+
+                validator($documentData, [
+                    'name'        => 'required|string|max:255',
+                    'category'    => 'required|string',
+                    'description' => 'nullable|string|max:500',
+                    'issue_date'  => 'nullable|date|before_or_equal:today',
+                    'expiry_date' => 'nullable|date',
+                ])->validate();
+
+                if (!empty($documentData['issue_date']) && !empty($documentData['expiry_date'])) {
+                    if ($documentData['expiry_date'] < $documentData['issue_date']) {
+                        throw new \Exception('Expiry date must be after issue date.');
+                    }
+                }
+
+                $fileName = time() . '_' . $index . '_' .
+                    preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
+
+                $filePath = $file->storeAs(
+                    'documents/' . $application->id,
+                    $fileName,
+                    'private'
+                );
+
                 $requirement = DocumentRequirement::find($documentData['category']);
 
                 Document::create([
@@ -161,7 +229,6 @@ class DocumentController extends Controller
                     'document_category_id' => $requirement->document_category_id ?? null,
                     'document_type_id' => $requirement->document_type_id ?? null,
                     'name' => $documentData['name'],
-                    'type' => 'required_document',
                     'description' => $documentData['description'] ?? null,
                     'original_filename' => $file->getClientOriginalName(),
                     'file_path' => $filePath,
@@ -176,91 +243,248 @@ class DocumentController extends Controller
                 ]);
 
                 $uploadedCount++;
-                
-            } catch (\Exception $e) {
-                $errors[] = "Failed to upload {$file->getClientOriginalName()}: " . $e->getMessage();
+
+            } catch (\Throwable $e) {
+                $errors[] = "Failed to upload {$file->getClientOriginalName()}: {$e->getMessage()}";
                 \Log::error('Document upload failed', [
+                    'index' => $index,
                     'file' => $file->getClientOriginalName(),
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
 
-        // Update application status if documents were uploaded
-        if ($uploadedCount > 0) {
-            // Check if this is the first document upload
-            $totalDocuments = $application->documents()->count();
-            
-            if ($totalDocuments === $uploadedCount && $application->status === ApplicationStatus::DOCUMENTS_PENDING->value) {
-                // First documents uploaded
+        // ✅ Status transition only if workflow is active
+        if (!$application->workflow_concluded && $uploadedCount > 0 && $application->status === ApplicationStatus::DOCUMENTS_PENDING->value) {
+            $this->statusService->transitionTo(
+                $application,
+                ApplicationStatus::DOCUMENTS_SUBMITTED,
+                "Uploaded {$uploadedCount} document(s)"
+            );
+        }
+
+        DB::commit();
+
+        if (count($errors) > 0) {
+            return back()
+                ->with('warning', "Uploaded {$uploadedCount} document(s). Some failed.")
+                ->with('upload_errors', $errors);
+        }
+
+        return back()->with('success', "Successfully uploaded {$uploadedCount} document(s)!");
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        \Log::error('Bulk document upload failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return back()->with('error', 'Failed to upload documents. Please try again.');
+    }
+    }
+
+
+    /**
+     * Consultant bulk upload for imported/legacy applications.
+     * Uploaded documents by consultant are auto-approved.
+     */
+    public function consultantStore(Request $request, Application $application)
+{
+    $user = auth()->user();
+
+    if (!$user->isConsultant() && !$user->isAdmin()) {
+        abort(403);
+    }
+
+    if ($user->isConsultant() && $application->consultant_id != $user->id) {
+        abort(403, 'You are not assigned to this application.');
+    }
+
+    $request->validate([
+        'files' => 'required|array|min:1|max:50',
+        'files.*' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+    ]);
+
+    $uploadedCount = 0;
+    $errors = [];
+
+    DB::beginTransaction();
+
+    try {
+        $files = $request->file('files');
+        $documentsData = $request->input('documents', []);
+
+        foreach ($files as $index => $file) {
+            try {
+                $documentData = $documentsData[$index] ?? null;
+
+                if (!$documentData) {
+                    throw new \Exception('Missing document metadata.');
+                }
+
+                validator($documentData, [
+                    'name'        => 'required|string|max:255',
+                    'category'    => 'required|string',
+                    'description' => 'nullable|string|max:500',
+                    'issue_date'  => 'nullable|date|before_or_equal:today',
+                    'expiry_date' => 'nullable|date',
+                ])->validate();
+
+                if (!empty($documentData['issue_date']) && !empty($documentData['expiry_date'])) {
+                    if ($documentData['expiry_date'] < $documentData['issue_date']) {
+                        throw new \Exception('Expiry date must be after issue date.');
+                    }
+                }
+
+                $fileName = time() . '_' . $index . '_' .
+                    preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
+
+                $filePath = $file->storeAs(
+                    'documents/' . $application->id,
+                    $fileName,
+                    'private'
+                );
+
+                $requirement = DocumentRequirement::find($documentData['category']);
+
+                $document = Document::create([
+                    'application_id' => $application->id,
+                    'uploaded_by' => auth()->id(),
+                    'document_requirement_id' => $requirement->id ?? null,
+                    'document_category_id' => $requirement->document_category_id ?? null,
+                    'document_type_id' => $requirement->document_type_id ?? null,
+                    'name' => $documentData['name'],
+                    'description' => $documentData['description'] ?? null,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientOriginalExtension(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'file_hash' => hash_file('sha256', $file->getRealPath()),
+                    'issue_date' => $documentData['issue_date'] ?? null,
+                    'expiry_date' => $documentData['expiry_date'] ?? null,
+                    'expires' => !empty($documentData['expiry_date']),
+                    'status' => 'approved', // auto-approved for consultant uploads
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+
+                \App\Models\AuditLog::log('document_uploaded_by_consultant', $document, 'Consultant uploaded document');
+
+                $uploadedCount++;
+
+            } catch (\Throwable $e) {
+                $errors[] = "Failed to upload {$file->getClientOriginalName()}: {$e->getMessage()}";
+                \Log::error('Consultant document upload failed', [
+                    'index' => $index,
+                    'file' => $file->getClientOriginalName(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Only transition application status if workflow is active
+        if (!$application->workflow_concluded) {
+            $allDocumentsApproved = $application->documents()
+                ->whereNotNull('document_requirement_id')
+                ->where('status', '!=', 'approved')
+                ->doesntExist();
+
+            if ($allDocumentsApproved && in_array($application->status, [
+                App\Enums\ApplicationStatus::DOCUMENTS_SUBMITTED->value,
+                App\Enums\ApplicationStatus::DOCUMENTS_PENDING->value,
+            ])) {
                 $this->statusService->transitionTo(
                     $application,
-                    ApplicationStatus::DOCUMENTS_SUBMITTED,
-                    "Uploaded {$uploadedCount} document(s)"
+                    App\Enums\ApplicationStatus::DOCUMENTS_APPROVED,
+                    "All documents uploaded by consultant"
                 );
             }
         }
 
         DB::commit();
 
-        $message = $uploadedCount === count($files) 
-            ? "Successfully uploaded {$uploadedCount} document(s)!" 
-            : "Uploaded {$uploadedCount} of " . count($files) . " documents. Some failed.";
+        if (count($errors) > 0) {
+            return back()->with('warning', "Uploaded {$uploadedCount} document(s). Some failed.")
+                         ->with('upload_errors', $errors);
+        }
 
-        return back()->with($errors ? 'warning' : 'success', $message);
+        return back()->with('success', "Successfully uploaded {$uploadedCount} document(s) and auto-approved them.");
 
-    } catch (\Exception $e) {
-        DB::rollback();
-        \Log::error('Bulk document upload failed', ['error' => $e->getMessage()]);
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        \Log::error('Consultant bulk upload failed', ['error' => $e->getMessage()]);
         return back()->with('error', 'Failed to upload documents. Please try again.');
     }
     }
 
-    public function approve(Document $document)
-    {
-        if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
-            abort(403);
-        }
-        
-        if (auth()->user()->isConsultant() && $document->application->consultant_id !== auth()->id()) {
-            abort(403, 'You are not assigned to this application.');
-        }
 
-        DB::beginTransaction();
-        try {
-            $document->update([
-                'status' => 'approved',
-                'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
-            ]);
+   public function approve(Document $document)
+{
+    $user = auth()->user();
 
-            // Check if all documents are approved
-            $application = $document->application;
+    if (!$user->isConsultant() && !$user->isAdmin()) {
+        abort(403);
+    }
+
+    if (!$document->relationLoaded('application')) {
+        $document->load('application');
+    }
+
+    if ($user->isConsultant() && $document->application->consultant_id != $user->id) {
+        abort(403, 'You are not assigned to this application.');
+    }
+
+    DB::beginTransaction();
+
+    try {
+        $document->update([
+            'status' => 'approved',
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        \App\Models\AuditLog::log('document_approved', $document, 'Document approved');
+
+        $application = $document->application;
+
+        // Only check application status if workflow is active
+        if (!$application->workflow_concluded) {
             $allDocumentsApproved = $application->documents()
                 ->where('status', '!=', 'approved')
-                ->where('document_type_id', 'required_document')
+                ->whereNotNull('document_requirement_id')
                 ->doesntExist();
 
-            if ($allDocumentsApproved && $application->status === ApplicationStatus::DOCUMENTS_SUBMITTED->value) {
+            if ($allDocumentsApproved && in_array($application->status, [
+                \App\Enums\ApplicationStatus::DOCUMENTS_SUBMITTED->value,
+                \App\Enums\ApplicationStatus::DOCUMENTS_PENDING->value,
+            ])) {
                 $this->statusService->transitionTo(
                     $application,
-                    ApplicationStatus::DOCUMENTS_APPROVED,
+                    \App\Enums\ApplicationStatus::DOCUMENTS_APPROVED,
                     "All documents approved"
                 );
             }
-
-            \App\Models\AuditLog::log('document_approved', $document, 'Document approved');
-
-            DB::commit();
-
-            return back()->with('success', 'Document approved successfully!');
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            \Log::error('Document approval failed', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Failed to approve document.');
         }
+
+        DB::commit();
+
+        $message = $application->workflow_concluded
+            ? 'Document approved successfully! (Legacy workflow – application status unchanged)'
+            : (isset($allDocumentsApproved) && $allDocumentsApproved
+                ? 'All documents have been approved! Applicant has been notified.'
+                : 'Document approved successfully!');
+
+        return back()->with('success', $message);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Document approval failed', ['error' => $e->getMessage()]);
+        return back()->with('error', 'Failed to approve document.');
     }
+    }
+
 
     public function reject(Request $request, Document $document)
     {
@@ -268,7 +492,7 @@ class DocumentController extends Controller
             abort(403);
         }
         
-        if (auth()->user()->isConsultant() && $document->application->consultant_id !== auth()->id()) {
+        if (auth()->user()->isConsultant() && $document->application->consultant_id != auth()->id()) {
             abort(403, 'You are not assigned to this application.');
         }
 
@@ -313,11 +537,11 @@ class DocumentController extends Controller
     public function download(Request $request, Application $application = null, Document $document)
     {
         if (auth()->user()->isApplicant()) {
-            if (!$application || $application->user_id !== auth()->id() || $document->application_id !== $application->id) {
+            if (!$application || $application->user_id != auth()->id() || $document->application_id != $application->id) {
                 abort(403, 'Unauthorized access.');
             }
         } elseif (auth()->user()->isConsultant()) {
-            if (!$document->application || $document->application->consultant_id !== auth()->id()) {
+            if (!$document->application || $document->application->consultant_id != auth()->id()) {
                 abort(403, 'You are not assigned to this application.');
             }
         } elseif (!auth()->user()->isAdmin()) {
@@ -341,7 +565,7 @@ class DocumentController extends Controller
     public function destroy(Application $application, Document $document)
     {
         if (auth()->user()->isApplicant()) {
-            if ($application->user_id !== auth()->id() || $document->application_id !== $application->id) {
+            if ($application->user_id != auth()->id() || $document->application_id != $application->id) {
                 abort(403, 'Unauthorized access.');
             }
             
@@ -349,7 +573,7 @@ class DocumentController extends Controller
                 return back()->with('error', 'Cannot delete a document that is under review or approved.');
             }
         } elseif (auth()->user()->isConsultant()) {
-            if ($application->consultant_id !== auth()->id()) {
+            if ($application->consultant_id != auth()->id()) {
                 abort(403, 'You are not assigned to this application.');
             }
         } elseif (!auth()->user()->isAdmin()) {
@@ -374,35 +598,126 @@ class DocumentController extends Controller
             return back()->with('error', 'Failed to delete document. Please try again.');
         }
     }
-
-    public function pendingReview()
-    {
-        if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
-            abort(403);
-        }
-
-        $query = Document::with(['application.user', 'uploadedBy'])
-            ->whereIn('status', ['uploaded', 'under_review']);
-
-        if (auth()->user()->isConsultant()) {
-            $query->whereHas('application', function ($q) {
-                $q->where('consultant_id', auth()->id());
-            });
-        }
-
-        $documents = $query->latest()->paginate(20);
-
-        return view('consultant.documents.pending', compact('documents'));
+  public function pendingReview(Request $request)
+{
+    if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
+        abort(403);
     }
+
+    // Base query - only documents for this consultant's applications
+    $query = Document::with(['application.user', 'uploadedBy', 'reviewedBy', 'documentRequirement'])
+        ->whereHas('application', function ($q) {
+            if (auth()->user()->isConsultant()) {
+                $q->where('consultant_id', auth()->id());
+            }
+        });
+
+    // Filter by status from tab selection
+    $status = $request->input('status', 'uploaded'); // Default to 'uploaded' for pending review
+    
+    if ($status !== 'all') {
+        // Map 'uploaded' to both 'uploaded' and 'under_review' for pending
+        if ($status === 'uploaded') {
+            $query->whereIn('status', ['uploaded', 'under_review']);
+        } else {
+            $query->where('status', $status);
+        }
+    }
+    // If status is 'all', no filter applied
+
+    $documents = $query->latest()->paginate(50)->withQueryString();
+
+    // Calculate statistics - for all documents (not filtered)
+    $baseStatsQuery = Document::whereHas('application', function ($q) {
+        if (auth()->user()->isConsultant()) {
+            $q->where('consultant_id', auth()->id());
+        }
+    });
+
+    $stats = [
+        'total' => (clone $baseStatsQuery)->count(),
+        'pending' => (clone $baseStatsQuery)->whereIn('status', ['uploaded', 'under_review'])->count(),
+        'approved' => (clone $baseStatsQuery)->where('status', 'approved')->count(),
+        'rejected' => (clone $baseStatsQuery)->where('status', 'rejected')->count(),
+    ];
+
+    return view('consultant.documents.pending', compact('documents', 'stats'));
+}
+    
+    public function documents(Request $request)
+    {
+    if (!auth()->user()->isConsultant() && !auth()->user()->isAdmin()) {
+        abort(403);
+    }
+
+    // Base query - only documents for this consultant's applications
+    $query = Document::with(['application.user', 'uploadedBy', 'reviewedBy', 'documentRequirement'])
+        ->whereHas('application', function ($q) {
+            if (auth()->user()->isConsultant()) {
+                $q->where('consultant_id', auth()->id());
+            }
+        });
+
+    // Filter by status
+    if ($request->has('status') && $request->status !== '') {
+        $query->where('status', $request->status);
+    }
+
+    // Filter by document type
+    if ($request->has('document_type') && $request->document_type !== '') {
+        $query->where(function($q) use ($request) {
+            $q->whereHas('documentRequirement', function($subQ) use ($request) {
+                $subQ->where('slug', $request->document_type);
+            });
+        });
+    }
+
+    // Search by applicant name or document name
+    if ($request->has('search') && $request->search !== '') {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('original_filename', 'like', "%{$search}%")
+              ->orWhereHas('application', function($appQuery) use ($search) {
+                  $appQuery->where('educator_first_name', 'like', "%{$search}%")
+                           ->orWhere('educator_last_name', 'like', "%{$search}%")
+                           ->orWhere('application_number', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    $documents = $query->latest()->paginate(50)->withQueryString();
+
+    // Calculate statistics
+    $baseStatsQuery = Document::whereHas('application', function ($q) {
+        if (auth()->user()->isConsultant()) {
+            $q->where('consultant_id', auth()->id());
+        }
+    });
+
+    $stats = [
+        'total' => (clone $baseStatsQuery)->count(),
+        'pending' => (clone $baseStatsQuery)->whereIn('status', ['uploaded', 'under_review'])->count(),
+        'approved' => (clone $baseStatsQuery)->where('status', 'approved')->count(),
+        'rejected' => (clone $baseStatsQuery)->where('status', 'rejected')->count(),
+    ];
+
+    return view('consultant.documents.index', compact('documents', 'stats'));
+}
 
     public function preview(Request $request, Application $application = null, Document $document)
     {
+        // Ensure application relationship is loaded
+        if (!$document->relationLoaded('application')) {
+            $document->load('application');
+        }
+        
         if (auth()->user()->isApplicant()) {
-            if (!$application || $application->user_id !== auth()->id() || $document->application_id !== $application->id) {
+            if (!$application || $application->user_id != auth()->id() || $document->application_id != $application->id) {
                 abort(403, 'Unauthorized access.');
             }
         } elseif (auth()->user()->isConsultant()) {
-            if ($document->application->consultant_id !== auth()->id()) {
+            if (!$document->application || $document->application->consultant_id != auth()->id()) {
                 abort(403, 'You are not assigned to this application.');
             }
         } elseif (!auth()->user()->isAdmin()) {
@@ -434,11 +749,11 @@ class DocumentController extends Controller
     public function bulkDownload(Request $request, Application $application)
     {
         if (auth()->user()->isApplicant()) {
-            if ($application->user_id !== auth()->id()) {
+            if ($application->user_id != auth()->id()) {
                 abort(403);
             }
         } elseif (auth()->user()->isConsultant()) {
-            if ($application->consultant_id !== auth()->id()) {
+            if ($application->consultant_id != auth()->id()) {
                 abort(403);
             }
         } elseif (!auth()->user()->isAdmin()) {
@@ -485,10 +800,10 @@ class DocumentController extends Controller
     }
 
     /**
- * Admin documents management page
- */
-public function adminIndex(Request $request)
-{
+     * Admin documents management page
+     */
+    public function adminIndex(Request $request)
+    {
     $query = Document::with(['application.user', 'uploadedBy', 'reviewedBy'])
         ->latest();
 
@@ -570,11 +885,11 @@ public function adminIndex(Request $request)
     return view('admin.documents.index', compact('documents', 'stats', 'categories'));
 }
 
-/**
- * Admin view documents for a specific application
- */
-public function adminApplicationDocuments(Request $request, Application $application)
-{
+    /**
+     * Admin view documents for a specific application
+     */
+    public function adminApplicationDocuments(Request $request, Application $application)
+    {
     if (!auth()->user()->isAdmin()) {
         abort(403, 'Unauthorized access.');
     }

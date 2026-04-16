@@ -15,14 +15,32 @@ class VerificationController extends Controller
      */
     public function show(Request $request)
     {
-        // Ensure we have an email passed from the registration redirect or previous attempt
-        if (!session('email') && !$request->email) {
-             // If no email is known, redirect back to register
-             return redirect()->route('register')->withErrors(['email' => 'Please register first.']);
+        // Get email from authenticated user, session, or request
+        $email = null;
+        
+        if ($request->user()) {
+            // If user is authenticated, use their email
+            $email = $request->user()->email;
+        } elseif (session('email')) {
+            // Check session for email
+            $email = session('email');
+        } elseif ($request->email) {
+            // Check request for email
+            $email = $request->email;
+        }
+        
+        // If no email is found, redirect to register
+        if (!$email) {
+            return redirect()->route('register')->withErrors(['email' => 'Please register first.']);
+        }
+
+        // Ensure email is in session for the form
+        if (!session('email')) {
+            session(['email' => $email]);
         }
 
         // The user is not yet verified, show the token input form
-        return view('auth.verify-token'); // New Blade file we'll create
+        return view('auth.verify-token');
     }
 
     /**
@@ -78,12 +96,28 @@ class VerificationController extends Controller
         $user->email_verification_token = $verificationCode;
         $user->save();
 
-        // Send the verification email
-        Mail::to($user->email)->send(new VerifyEmailCodeMail($verificationCode, $user));
-
-        // Redirect back with success message and email in session
-        return back()
-            ->with('email', $user->email)
-            ->with('success', 'A new verification code has been sent to your email.');
+        // Send the verification email - always dispatch to prevent blocking
+        $mail = new VerifyEmailCodeMail($verificationCode);
+        
+        try {
+            // Always dispatch to queue (even if sync) to prevent blocking
+            Mail::to($user->email)->queue($mail);
+            
+            // Redirect back with success message and email in session
+            return back()
+                ->with('email', $user->email)
+                ->with('success', 'A new verification code has been sent to your email.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to queue verification code email', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Still return success but with a warning about email delivery
+            return back()
+                ->with('email', $user->email)
+                ->with('warning', 'Verification code generated, but we were unable to send the email. Please check your email configuration. Your verification code is: ' . $verificationCode);
+        }
     }
 }

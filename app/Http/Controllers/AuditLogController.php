@@ -27,7 +27,7 @@ class AuditLogController extends Controller
                 return $q->where('user_id', $userId);
             })
             ->when($request->auditable_type, function ($q, $type) {
-                return $q->where('auditable_type', $type);
+                return $q->where('model_type', $type);
             })
             ->when($request->date_from, function ($q, $dateFrom) {
                 return $q->whereDate('created_at', '>=', $dateFrom);
@@ -102,11 +102,11 @@ class AuditLogController extends Controller
      */
     public function applicationActivity(Application $application)
     {
-        $activities = AuditLog::where('auditable_type', 'App\Models\Application')
-            ->where('auditable_id', $application->id)
+        $activities = AuditLog::where('model_type', 'App\Models\Application')
+            ->where('model_id', $application->id)
             ->orWhere(function($query) use ($application) {
-                $query->where('auditable_type', 'App\Models\Document')
-                      ->whereHas('auditable', function($q) use ($application) {
+                $query->where('model_type', 'App\Models\Document')
+                      ->whereHas('model', function($q) use ($application) {
                           $q->where('application_id', $application->id);
                       });
             })
@@ -164,8 +164,8 @@ class AuditLogController extends Controller
                     $log->description,
                     $log->user->name ?? 'N/A',
                     $log->user->email ?? 'N/A',
-                    class_basename($log->auditable_type ?? ''),
-                    $log->auditable_id ?? '',
+                    class_basename($log->model_type ?? ''),
+                    $log->model_id ?? '',
                     $log->ip_address ?? '',
                     $log->user_agent ?? '',
                     $log->created_at->format('Y-m-d H:i:s'),

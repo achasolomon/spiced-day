@@ -136,7 +136,7 @@ class ReportController extends Controller
             ->whereIn('status', ['approved', 'rejected'])
             ->count();
 
-        if ($total === 0) {
+        if ($total == 0) {
             return 0;
         }
 
@@ -341,33 +341,54 @@ public function documentsReport(Request $request)
     $dateFrom = $request->date_from ? Carbon::parse($request->date_from) : now()->subMonths(3)->startOfMonth();
     $dateTo = $request->date_to ? Carbon::parse($request->date_to) : now()->endOfMonth();
 
-    $documents = Document::with(['application.user', 'uploadedBy', 'reviewedBy'])
-        ->whereBetween('created_at', [$dateFrom, $dateTo])
+    // Build base query for filtering
+    $baseQuery = Document::whereBetween('created_at', [$dateFrom, $dateTo])
         ->when($request->status, function ($q, $status) {
             return $q->where('status', $status);
         })
         ->when($request->category, function ($q, $category) {
-            return $q->where('category', $category);
-        })
+            return $q->where('document_category_id', $category);
+        });
+
+    // Get paginated documents with relationships
+    $documents = (clone $baseQuery)
+        ->with(['application.user', 'uploadedBy', 'reviewedBy', 'documentCategory'])
         ->orderBy('created_at', 'desc')
         ->paginate(50);
 
+    // Calculate stats
+    $totalDocuments = (clone $baseQuery)->count();
+    $approvedCount = (clone $baseQuery)->where('status', 'approved')->count();
+    
+    // Get category stats by joining with document_categories table
+    // Need to rebuild the query with explicit table prefixes for the join
+    $categoryQuery = Document::whereBetween('documents.created_at', [$dateFrom, $dateTo])
+        ->when($request->status, function ($q, $status) {
+            return $q->where('documents.status', $status);
+        })
+        ->when($request->category, function ($q, $category) {
+            return $q->where('documents.document_category_id', $category);
+        })
+        ->join('document_categories', 'documents.document_category_id', '=', 'document_categories.id')
+        ->selectRaw('document_categories.name as category, count(*) as count')
+        ->groupBy('document_categories.name');
+    
+    $categoryStats = $categoryQuery->pluck('count', 'category');
+    
     $stats = [
-        'total' => $documents->total(),
-        'by_status' => Document::whereBetween('created_at', [$dateFrom, $dateTo])
+        'total' => $totalDocuments,
+        'by_status' => (clone $baseQuery)
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status'),
-        'by_category' => Document::whereBetween('created_at', [$dateFrom, $dateTo])
-            ->selectRaw('category, count(*) as count')
-            ->groupBy('category')
-            ->pluck('count', 'category'),
-        'approval_rate' => $documents->where('status', 'approved')->count() / max($documents->total(), 1) * 100,
+        'by_category' => $categoryStats,
+        'approval_rate' => $totalDocuments > 0 ? ($approvedCount / $totalDocuments) * 100 : 0,
         'expired_count' => Document::where('expires', true)
             ->where('expiry_date', '<', now())
+            ->whereBetween('created_at', [$dateFrom, $dateTo])
             ->count(),
         'avg_review_time' => $this->calculateAvgDocumentReviewTime(
-            Document::whereBetween('created_at', [$dateFrom, $dateTo])
+            (clone $baseQuery)
                 ->whereNotNull('reviewed_at')
                 ->get()
         ),

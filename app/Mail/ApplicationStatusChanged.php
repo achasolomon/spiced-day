@@ -30,7 +30,7 @@ class ApplicationStatusChanged extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Application Status Update - {$this->application->application_number}",
+            subject: "Application Status Update",
         );
     }
 
@@ -41,7 +41,7 @@ class ApplicationStatusChanged extends Mailable
             with: [
                 'application' => $this->application,
                 'newStatus' => $this->newStatus,
-                'statusMessage' => $this->statusMessage,  // Changed from $message
+                'statusMessage' => $this->statusMessage,
                 'isConsultant' => $this->isConsultant,
             ]
         );

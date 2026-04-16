@@ -3,12 +3,31 @@
 @section('title', 'Applications')
 
 @section('content')
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('import', {
+            openImportModal: false,
+            importing: false,
+            results: null,
+        });
+    });
+</script>
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Applications</h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and track your assigned applications</p>
+        </div>
+        <div class="flex gap-3">
+            <button @click="$store.import.openImportModal = true"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                </svg>
+                Import Excel
+            </button>
         </div>
     </div>
 
@@ -60,6 +79,69 @@
                 </button>
             </div>
         </form>
+    </div>
+
+   <!-- Import Modal -->
+    <div 
+        x-show="$store.import.openImportModal"
+        x-cloak
+        @keydown.escape.window="$store.import.openImportModal = false"
+        class="fixed inset-0 z-50 overflow-y-auto">
+        
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black opacity-50" @click="$store.import.openImportModal = false"></div>
+
+            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Import Applications from Excel</h2>
+                    <button @click="$store.import.openImportModal = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="importForm" @submit.prevent="submitImport" enctype="multipart/form-data">
+                    @csrf
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Excel File (.xlsx, .xls)
+                        </label>
+                        <input type="file" name="file" accept=".xlsx,.xls" required
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                        <p class="mt-1 text-xs text-gray-500">Max size: 10 MB</p>
+                    </div>
+
+                    <div x-show="$store.import.importing" class="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                        Processing your file… This may take a few moments.
+                    </div>
+
+                    <div x-show="$store.import.results !== null" 
+                        class="mb-4 p-4 rounded-lg"
+                        :class="$store.import.results?.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+                        <p class="font-medium" x-text="$store.import.results?.message"></p>
+                        <p class="text-sm mt-1">
+                            Success: <span x-text="$store.import.results?.imported || 0"></span> |
+                            Failed: <span x-text="$store.import.results?.failed || 0"></span>
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button type="button"
+                                @click="$store.import.openImportModal = false"
+                                class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                :disabled="$store.import.importing"
+                                class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+                            <span x-show="$store.import.importing">Importing…</span>
+                            <span x-show="!$store.import.importing">Start Import</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Applications Table -->
@@ -119,9 +201,9 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div class="bg-orange-500 h-2 rounded-full transition-all" style="width: {{ $application->completion_percentage }}%"></div>
+                                        <div class="bg-orange-500 h-2 rounded-full transition-all" style="width: {{ $application->application_progress_percentage }}%"></div>
                                     </div>
-                                    <span class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{{ number_format($application->completion_percentage, 0) }}%</span>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{{ number_format($application->application_progress_percentage, 0) }}%</span>
                                 </div>
                             </td>
 
@@ -164,4 +246,38 @@
         @endif
     </div>
 </div>
+<script>
+    
+function submitImport() {
+    const form = document.getElementById('importForm');
+    const data = new FormData(form);
+    const store = Alpine.store('import');
+
+    store.importing = true;
+    store.results = null;
+
+    fetch('{{ route('consultant.applications.import') }}', {
+        method: 'POST',
+        body: data,
+        headers: {
+            'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value
+        }
+    })
+    .then(r => r.json())
+    .then(json => {
+        store.importing = false;
+        store.results = json;
+
+        if (json.success) {
+            setTimeout(() => location.reload(), 1500);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        store.importing = false;
+        store.results = { success: false, message: 'Network error. Please try again.' };
+    });
+}
+
+</script>
 @endsection

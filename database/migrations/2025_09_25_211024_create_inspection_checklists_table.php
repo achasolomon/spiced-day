@@ -25,7 +25,7 @@ return new class extends Migration
                 'initial_inspection',
                 'second_inspection',
                 'final_inspection', 
-                'follow_up_inspection',
+                'compliance_inspection',
                 'renewal_inspection',
                 'complaint_inspection'
             ]);

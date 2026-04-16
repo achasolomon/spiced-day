@@ -23,9 +23,9 @@ class ConsultantController extends Controller
                 return $q->where('employment_status', $status);
             })
             ->when($request->availability, function ($q, $availability) {
-                if ($availability === 'accepting') {
+                if ($availability == 'accepting') {
                     return $q->where('accepts_new_applications', true);
-                } elseif ($availability === 'not_accepting') {
+                } elseif ($availability == 'not_accepting') {
                     return $q->where('accepts_new_applications', false);
                 }
             })
@@ -149,7 +149,6 @@ class ConsultantController extends Controller
         return view('admin.consultants.create', compact('users'));
     }
 
-   // app/Http/Controllers/ConsultantController.php
 
     public function store(Request $request)
     {

@@ -3,17 +3,19 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SPICE'd Dayhome Agency - Professional Childcare Licensing</title>
+    <title>SPICE'd Dayhome Agency - Professional Childcare Approval</title>
     
-    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+    <link rel="icon" type="image/jpg" href="{{ asset('logo.jpeg') }}">
 
 
-    <meta name="description" content="Alberta's premier dayhome licensing agency. Expert guidance through the complete certification process with 98% approval rate and 15+ years experience.">
+    <meta name="description" content="Alberta's premier dayhome approval agency. Expert guidance through the complete certification process with 98% approval rate and 15+ years experience.">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
@@ -101,6 +103,138 @@
     
     <!-- Alpine.js -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+    /* Enhanced Footer Styles */
+    .bg-clip-text {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+    .footer-link {
+        position: relative;
+        display: inline-block;
+    }
+
+    .footer-link::after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 2px;
+        bottom: -2px;
+        left: 0;
+        background: linear-gradient(90deg, #a78bfa, #8b5cf6);
+        transition: width 0.3s ease;
+    }
+
+    .footer-link:hover::after {
+        width: 100%;
+    }
+
+    .social-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .social-icon:hover {
+        background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+        transform: translateY(-5px) scale(1.1);
+        box-shadow: 0 10px 30px rgba(167, 139, 250, 0.5);
+        border-color: #a78bfa;
+    }
+
+    .social-icon:hover i {
+        transform: scale(1.2);
+        color: white;
+    }
+
+    .land-acknowledgement {
+        position: relative;
+        overflow: hidden;
+    }
+ .land-acknowledgement p{
+    color: #000;
+ }
+
+    .land-acknowledgement::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.1), transparent);
+        transition: left 0.6s ease;
+    }
+
+    .land-acknowledgement:hover::before {
+        left: 100%;
+    }
+
+    .hours-list li {
+        padding-left: 1.5rem;
+        position: relative;
+    }
+
+    .hours-list li::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: #a78bfa;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .section-heading {
+        position: relative;
+        display: inline-block;
+        padding-bottom: 0.5rem;
+    }
+
+    .section-heading::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 3px;
+        background: linear-gradient(90deg, #a78bfa, transparent);
+        border-radius: 2px;
+    }
+
+    .contact-link {
+        transition: all 0.3s ease;
+    }
+
+    .contact-link:hover {
+        color: #c4b5fd !important;
+        transform: translateX(5px);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-on-scroll {
+        animation: fadeInUp 0.6s ease forwards;
+    }
+</style>
+
+
 </head>
 
 <body class="font-sans antialiased bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 transition-colors duration-300" 
@@ -117,11 +251,12 @@
                        <img src="{{ asset('assets/images/logo.png') }}" alt="logo spiced dayhome agency" class="w-20 h-10  rounded-lg">
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold tracking-tight">
+                        <h1 class="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
                             <span class="text-purple-600 dark:text-orange-400">SPICE'd</span>
-                            <span class="text-neutral-800 dark:text-neutral-200"> Dayhome</span>
+                            <span class="text-neutral-800 dark:text-neutral-200 hidden sm:inline"> Dayhome</span>
                         </h1>
-                        <p class="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Professional Licensing Agency</p>
+                        <p class="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 font-medium hidden sm:block">Professional Approval Agency</p>
+                        <p class="text-xs text-neutral-500 dark:text-neutral-400 font-medium sm:hidden">Dayhome Agency</p>
                     </div>
                 </div>
 
@@ -141,7 +276,7 @@
                     
                     <div class="flex items-center space-x-4">
                         <a href="/login" class="text-neutral-700 dark:text-neutral-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors font-medium">Login</a>
-                        <a href="/register" class="bg-purple-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg">
+                        <a href="/apply" class="bg-purple-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg">
                             Get Started
                         </a>
                     </div>
@@ -173,7 +308,7 @@
                 
                 <div class="flex space-x-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
                     <a href="/login" class="flex-1 text-center py-3 border border-neutral-300 dark:border-neutral-600 rounded-lg text-neutral-700 dark:text-neutral-300 font-medium">Login</a>
-                    <a href="/register" class="flex-1 text-center py-3 bg-brand-600 text-white rounded-lg font-semibold">Get Started</a>
+                    <a href="/apply" class="flex-1 text-center py-3 bg-brand-600 text-white rounded-lg font-semibold">Get Started</a>
                 </div>
             </div>
         </div>
@@ -203,18 +338,18 @@
                             <h1 class="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight">
                                 <span class="text-neutral-900 dark:text-white transition-colors duration-300">Professional</span><br>
                                 <span class="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent animate-pulse">Dayhome</span><br>
-                                <span class="text-neutral-900 dark:text-white transition-colors duration-300">Licensing</span>
+                                <span class="text-neutral-900 dark:text-white transition-colors duration-300">Approval</span>
                             </h1>
                             
                             <p class="text-lg md:text-xl text-neutral-600 dark:text-neutral-300 leading-relaxed max-w-xl transition-colors duration-300">
                                 Expert guidance through SPICE'd dayhome certification process with our 
-                                <span class="font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">98% approval rate</span> 
+                                <span class="font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent" style="background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: linear-gradient(to right, #16a34a, #2563eb); display: inline-block;">98% approval rate</span> 
                                 and personalized support from application to operation.
                             </p>
                         </div>
                         
                         <div class="flex flex-col sm:flex-row gap-4 animate-slide-up">
-                            <a href="/register" class="group bg-gradient-to-r from-purple-500 via-purple-500 to-purple-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 text-center relative overflow-hidden">
+                            <a href="/apply" class="group bg-gradient-to-r from-purple-500 via-purple-500 to-purple-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 text-center relative overflow-hidden">
                                 <span class="relative z-10">Start Application</span>
                                 <div class="absolute inset-0 bg-purple-500 via-purple-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </a>
@@ -227,7 +362,7 @@
                         <div class="grid grid-cols-3 gap-4 md:gap-8 pt-6 md:pt-8 border-t border-neutral-200 dark:border-neutral-700 animate-scale-in">
                             <div class="text-center group hover:scale-110 transition-transform duration-300">
                                 <div class="text-xl md:text-2xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">500+</div>
-                                <div class="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Licensed Homes</div>
+                                <div class="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 font-medium group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors duration-300">Approved Homes</div>
                             </div>
                             <div class="text-center group hover:scale-110 transition-transform duration-300">
                                 <div class="text-xl md:text-2xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">15+</div>
@@ -258,7 +393,7 @@
                                 <div class="absolute bottom-4 md:bottom-24 left-4 md:left-6 right-4 md:right-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
                                     <div class="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm rounded-lg p-3 md:p-4 shadow-lg">
                                         <p class="text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200">Safe, nurturing environment</p>
-                                        <p class="text-xs text-neutral-600 dark:text-neutral-400">Professional childcare licensing</p>
+                                        <p class="text-xs text-neutral-600 dark:text-neutral-400">Professional childcare approval</p>
                                     </div>
                                 </div>
                             </div>
@@ -302,81 +437,70 @@
 
     <!-- About/SPICE Section -->
     <section id="about" class="py-24 bg-white dark:bg-neutral-900">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-16 space-y-4">
-                <h2 class="text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white">
-                    The <span class="text-brand-600 dark:text-brand-400">SPICE'd</span> Approach
-                </h2>
-                <p class="text-xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto leading-relaxed">
-                    Our comprehensive framework ensures every child develops across five critical areas of growth
-                </p>
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
+        <!-- Text Section -->
+        <div class="space-y-10">
+            <!-- Mission -->
+            <div>
+            <h2 class="text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
+                Our <span class="text-brand-600 dark:text-brand-400">Vision</span>
+            </h2>
+            <p class="text-lg text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                We believe that every child deserves the opportunity to fully develop. Therefore, we work to ensure that every 
+              child's basic developmental skills and needs are being improved, and met.
+            </p>
             </div>
 
-            <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mb-16">
-                <div class="bg-white dark:bg-neutral-800 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <span class="text-2xl font-bold text-red-600 dark:text-red-400">S</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-neutral-900 dark:text-white">Social</h3>
-                    <p class="text-neutral-600 dark:text-neutral-300">Building interpersonal skills, communication, and community awareness</p>
-                </div>
-
-                <div class="bg-white dark:bg-neutral-800 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <span class="text-2xl font-bold text-orange-600 dark:text-orange-400">P</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-neutral-900 dark:text-white">Physical</h3>
-                    <p class="text-neutral-600 dark:text-neutral-300">Developing motor skills, coordination, and healthy lifestyle habits</p>
-                </div>
-
-                <div class="bg-white dark:bg-neutral-800 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <span class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">I</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-neutral-900 dark:text-white">Intellectual</h3>
-                    <p class="text-neutral-600 dark:text-neutral-300">Fostering curiosity, critical thinking, and cognitive development</p>
-                </div>
-
-                <div class="bg-white dark:bg-neutral-800 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <span class="text-2xl font-bold text-green-600 dark:text-green-400">C</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-neutral-900 dark:text-white">Creative</h3>
-                    <p class="text-neutral-600 dark:text-neutral-300">Encouraging artistic expression and innovative problem-solving</p>
-                </div>
-
-                <div class="bg-white dark:bg-neutral-800 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">E</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-neutral-900 dark:text-white">Emotional</h3>
-                    <p class="text-neutral-600 dark:text-neutral-300">Building emotional intelligence and self-regulation skills</p>
-                </div>
-            </div>
-
-            <!-- Stats -->
-            <div class="bg-gradient-to-r from-brand-50 to-accent-50 dark:from-brand-900/20 dark:to-accent-900/20 rounded-3xl p-12">
-                <div class="grid md:grid-cols-4 gap-8 text-center">
-                    <div>
-                        <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">500+</div>
-                        <div class="text-neutral-600 dark:text-neutral-300 font-medium">Licensed Dayhomes</div>
-                    </div>
-                    <div>
-                        <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">2000+</div>
-                        <div class="text-neutral-600 dark:text-neutral-300 font-medium">Families Served</div>
-                    </div>
-                    <div>
-                        <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">15+</div>
-                        <div class="text-neutral-600 dark:text-neutral-300 font-medium">Years Experience</div>
-                    </div>
-                    <div>
-                        <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">98%</div>
-                        <div class="text-neutral-600 dark:text-neutral-300 font-medium">Success Rate</div>
-                    </div>
-                </div>
+            <!-- Vision -->
+            <div>
+            <h2 class="text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
+                Our <span class="text-brand-600 dark:text-brand-400">Mission</span>
+            </h2>
+            <p class="text-lg text-neutral-600 dark:text-neutral-300 leading-relaxed">
+              Our mission is to assist children in developing their fundamental Social, Physical,
+                Intellectual, Creative, and Emotional skills. This is achieved through child-led exploration,
+                investigation, imagination, creativity, and problem solving.
+            </p>
             </div>
         </div>
+
+        <!-- Image Section -->
+        <div class="flex justify-center">
+            <img
+             src="{{ asset('assets/images/art.jpg') }}" 
+            alt="SPICE'd team or classroom"
+            class="rounded-3xl shadow-xl object-cover w-full max-w-md h-[400px]"
+            />
+        </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div
+        class="bg-gradient-to-r from-brand-50 to-accent-50 dark:from-brand-900/20 dark:to-accent-900/20 rounded-3xl p-12"
+        >
+        <div class="grid md:grid-cols-4 gap-8 text-center">
+            <div>
+            <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">500+</div>
+            <div class="text-neutral-600 dark:text-neutral-300 font-medium">Approved Dayhomes</div>
+            </div>
+            <div>
+            <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">2000+</div>
+            <div class="text-neutral-600 dark:text-neutral-300 font-medium">Families Served</div>
+            </div>
+            <div>
+            <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">15+</div>
+            <div class="text-neutral-600 dark:text-neutral-300 font-medium">Years Experience</div>
+            </div>
+            <div>
+            <div class="text-4xl font-bold text-brand-600 dark:text-brand-400 mb-2">98%</div>
+            <div class="text-neutral-600 dark:text-neutral-300 font-medium">Success Rate</div>
+            </div>
+        </div>
+        </div>
+    </div>
     </section>
+
 
     <!-- Services Section -->
     <section id="services" class="py-24 bg-neutral-50 dark:bg-neutral-800">
@@ -403,7 +527,7 @@
                     Our <span class="text-brand-600 dark:text-brand-400">Services</span>
                 </h2>
                 <p class="text-xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto">
-                    Comprehensive support throughout your dayhome licensing journey
+                    Comprehensive support throughout your dayhome approval journey
                 </p>
             </div>
 
@@ -432,7 +556,7 @@
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">Complete Licensing</h3>
+                    <h3 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">Complete approval</h3>
                     <p class="text-neutral-600 dark:text-neutral-300 mb-6">End-to-end support from initial application through final approval and beyond.</p>
                     <ul class="space-y-2 text-sm text-neutral-500 dark:text-neutral-400">
                         <li class="flex items-center transform hover:translate-x-1 transition-transform duration-200"><span class="w-1.5 h-1.5 bg-brand-500 rounded-full mr-3"></span>Application assistance</li>
@@ -534,7 +658,7 @@
                     <h3 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">Ongoing Support</h3>
                     <p class="text-neutral-600 dark:text-neutral-300 mb-6">Continuous assistance to maintain compliance and grow your dayhome business.</p>
                     <ul class="space-y-2 text-sm text-neutral-500 dark:text-neutral-400">
-                        <li class="flex items-center transform hover:translate-x-1 transition-transform duration-200"><span class="w-1.5 h-1.5 bg-purple-500 rounded-full mr-3"></span>License renewals</li>
+                        <li class="flex items-center transform hover:translate-x-1 transition-transform duration-200"><span class="w-1.5 h-1.5 bg-purple-500 rounded-full mr-3"></span>Approval renewals</li>
                         <li class="flex items-center transform hover:translate-x-1 transition-transform duration-200"><span class="w-1.5 h-1.5 bg-purple-500 rounded-full mr-3"></span>Policy updates</li>
                         <li class="flex items-center transform hover:translate-x-1 transition-transform duration-200"><span class="w-1.5 h-1.5 bg-purple-500 rounded-full mr-3"></span>Business coaching</li>
                     </ul>
@@ -634,7 +758,7 @@
                     Our <span class="text-brand-600 dark:text-brand-400">Process</span>
                 </h2>
                 <p class="text-xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto">
-                    A streamlined, step-by-step approach to getting your dayhome licensed and operational
+                    A streamlined, step-by-step approach to getting your dayhome approval and operational
                 </p>
             </div>
 
@@ -686,7 +810,7 @@
                                 </div>
                                 <h3 class="text-2xl font-bold mb-4 text-neutral-900 dark:text-white">Initial Consultation</h3>
                                 <p class="text-neutral-600 dark:text-neutral-300 mb-4">
-                                    Schedule a comprehensive consultation to assess your readiness and create a personalized licensing plan.
+                                    Schedule a comprehensive consultation to assess your readiness and create a personalized approval plan.
                                 </p>
                                 <div class="text-sm text-neutral-500 dark:text-neutral-400 space-y-1">
                                     <div class="flex items-center"><span class="w-2 h-2 bg-red-400 rounded-full mr-2"></span><strong>Duration:</strong> 60-90 minutes</div>
@@ -695,8 +819,8 @@
                             </div>
                         </div>
                         <div class="relative lg:w-1/2 lg:pl-16">
-                            <div class="w-20 h-20 bg-gradient-to-br from-red-400 to-red-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto lg:ml-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300">
-                                1
+                            <div class="w-20 h-20 bg-gradient-to-br from-red-400 to-red-600 rounded-2xl flex items-center justify-center mx-auto lg:ml-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300" style="color: #ffffff !important; font-weight: 700; font-size: 1.5rem; line-height: 1;">
+                                <span style="color: #ffffff !important; display: block;">1</span>
                             </div>
                         </div>
                     </div>
@@ -736,8 +860,8 @@
                             </div>
                         </div>
                         <div class="relative lg:w-1/2 lg:pr-16">
-                            <div class="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto lg:mr-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300">
-                                2
+                            <div class="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center mx-auto lg:mr-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300" style="color: #ffffff !important; font-weight: 700; font-size: 1.5rem; line-height: 1;">
+                                <span style="color: #ffffff !important; display: block;">2</span>
                             </div>
                         </div>
                     </div>
@@ -777,8 +901,8 @@
                             </div>
                         </div>
                         <div class="relative lg:w-1/2 lg:pl-16">
-                            <div class="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto lg:ml-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300">
-                                3
+                            <div class="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto lg:ml-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300" style="color: #ffffff !important; font-weight: 700; font-size: 1.5rem; line-height: 1;">
+                                <span style="color: #ffffff !important; display: block;">3</span>
                             </div>
                         </div>
                     </div>
@@ -807,9 +931,9 @@
                                 <div class="flex items-center mb-4">
                                     <span class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-full text-sm font-semibold">Step 4</span>
                                 </div>
-                                <h3 class="text-2xl font-bold mb-4 text-neutral-900 dark:text-white">Training & Certification</h3>
+                                <h3 class="text-2xl font-bold mb-4 text-neutral-900 dark:text-white">Uploading & Certification</h3>
                                 <p class="text-neutral-600 dark:text-neutral-300 mb-4">
-                                    Complete required training modules and obtain necessary certifications for operation.
+                                    Complete all required modules and obtain necessary certifications for operation.
                                 </p>
                                 <div class="text-sm text-neutral-500 dark:text-neutral-400 space-y-1">
                                     <div class="flex items-center"><span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span><strong>Duration:</strong> 1-2 weeks</div>
@@ -818,8 +942,8 @@
                             </div>
                         </div>
                         <div class="relative lg:w-1/2 lg:pr-16">
-                            <div class="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto lg:mr-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300">
-                                4
+                            <div class="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center mx-auto lg:mr-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300" style="color: #ffffff !important; font-weight: 700; font-size: 1.5rem; line-height: 1;">
+                                <span style="color: #ffffff !important; display: block;">4</span>
                             </div>
                         </div>
                     </div>
@@ -850,7 +974,7 @@
                                 </div>
                                 <h3 class="text-2xl font-bold mb-4 text-neutral-900 dark:text-white">Final Approval</h3>
                                 <p class="text-neutral-600 dark:text-neutral-300 mb-4">
-                                    Receive your official license and begin operating your licensed dayhome.
+                                    Receive your official approval and begin operating your approved dayhome.
                                 </p>
                                 <div class="text-sm text-neutral-500 dark:text-neutral-400 space-y-1">
                                     <div class="flex items-center"><span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span><strong>Duration:</strong> 3-5 business days</div>
@@ -859,8 +983,8 @@
                             </div>
                         </div>
                         <div class="relative lg:w-1/2 lg:pl-16">
-                            <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto lg:ml-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300">
-                                ✓
+                            <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto lg:ml-0 relative z-10 shadow-lg transform hover:scale-110 transition-transform duration-300" style="color: #ffffff !important; font-weight: 700; font-size: 1.5rem; line-height: 1;">
+                                <span style="color: #ffffff !important; display: block;">✓</span>
                             </div>
                         </div>
                     </div>
@@ -886,7 +1010,7 @@
                 x-init="init"
                 :class="inView ? 'animate-scale-in' : 'opacity-0 scale-95'"
                 class="transition-all duration-700 ease-out">
-                <a href="/register" class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 hover:shadow-xl hover:scale-105 inline-block transform hover:-translate-y-1">
+                <a href="/apply" class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 hover:shadow-xl hover:scale-105 inline-block transform hover:-translate-y-1">
                     Begin Your Journey
                 </a>
             </div>
@@ -896,89 +1020,128 @@
     <!-- Footer -->
     <footer class="bg-neutral-900 text-white py-16">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-                <!-- Company Info -->
-                <div class="lg:col-span-2">
-                    <div class="flex items-center space-x-4 mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center">
-                            <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-2xl font-bold">
-                                <span class="text-brand-400">SPICE'd</span> Dayhome Agency
-                            </h3>
-                            <p class="text-neutral-400">Professional Licensing Services</p>
-                        </div>
-                    </div>
-                    <p class="text-neutral-300 mb-6 max-w-md leading-relaxed">
-                        Alberta's premier dayhome licensing agency with over 15 years of experience helping families create safe, nurturing childcare environments.
+            <!-- Top Row -->
+            <div class="grid lg:grid-cols-3 gap-12 mb-12">
+                <!-- Left: Business Info -->
+                <div class="animate-on-scroll">
+                    <h3 class="text-3xl font-bold mb-2">
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400" style="background-clip: text; -webkit-background-clip: text; color: transparent; background-image: linear-gradient(to right, #a78bfa, #f472b6);">SPICE'd</span> 
+                        <span class="text-white">Childcare Services</span>
+                    </h3>
+                    <p class="text-neutral-300 mb-6 flex items-center">
+                        <i class="fas fa-map-marker-alt mr-2 text-purple-400"></i>
+                        Edmonton, AB
                     </p>
-                    <div class="flex space-x-4">
-                        <a href="#" class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center hover:bg-brand-500 transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                            </svg>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-500 transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/>
-                            </svg>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-blue-700 rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                        </svg>
-                        </a>
+                    <div class="space-y-3">
+                        <p class="flex items-center">
+                            <i class="fas fa-phone mr-3 text-purple-400"></i>
+                            <span class="font-semibold text-white mr-2">Phone:</span> 
+                            <a href="tel:8258894233" class="contact-link text-brand-400 hover:underline">825-889-4233</a>
+                        </p>
+                        <p class="flex items-center">
+                            <i class="fas fa-envelope mr-3 text-purple-400"></i>
+                            <span class="font-semibold text-white mr-2">Email:</span> 
+                            <a href="mailto:executive@spicedchildcare.com" class="contact-link text-brand-400 hover:underline break-all">executive@spicedchildcare.com</a>
+                        </p>
                     </div>
                 </div>
 
-                <!-- Quick Links -->
-                <div>
-                    <h4 class="text-lg font-semibold mb-6 text-white">Quick Links</h4>
-                    <ul class="space-y-3">
-                        <li><a href="#home" class="text-neutral-300 hover:text-brand-400 transition-colors">Home</a></li>
-                        <li><a href="#about" class="text-neutral-300 hover:text-brand-400 transition-colors">About SPICE'd</a></li>
-                        <li><a href="#services" class="text-neutral-300 hover:text-brand-400 transition-colors">Services</a></li>
-                        <li><a href="#process" class="text-neutral-300 hover:text-brand-400 transition-colors">Process</a></li>
-                        <li><a href="#contact" class="text-neutral-300 hover:text-brand-400 transition-colors">Contact</a></li>
-                        <li><a href="/resources" class="text-neutral-300 hover:text-brand-400 transition-colors">Resources</a></li>
+                <!-- Middle: Land Acknowledgement -->
+                <div class="lg:col-span-2 animate-on-scroll" style="animation-delay: 0.1s;">
+                    <div class="land-acknowledgement  from-dark-800 to-dark-900 bg-white  text-dark-200 italic p-8 rounded-2xl shadow-lg border border-neutral-700 hover:border-purple-500/50">
+                        <i class="fas fa-leaf text-purple-400 mb-3 text-2xl block"></i>
+                        <p class="leading-relaxed ">
+                            We acknowledge that the land on which we gather is Treaty 6 territory and a traditional meeting ground and home for many Indigenous Peoples, including Cree, Saulteaux, Niisitapi (Blackfoot), Métis, and Nakota Sioux.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-neutral-800 mb-12 opacity-50" />
+
+            <!-- Middle Row -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+                <!-- Hours of Service -->
+                <div class="animate-on-scroll" style="animation-delay: 0.2s;">
+                    <h4 class="section-heading text-lg font-semibold mb-6 text-purple-400">
+                        <i class="fas fa-clock mr-2"></i>Hours of Service
+                    </h4>
+                    <ul class="hours-list space-y-2 text-neutral-300">
+                        <li class="hover:text-white hover:translate-x-1 transition-all">Monday: 8:00 AM - 5:00 PM</li>
+                        <li class="hover:text-white hover:translate-x-1 transition-all">Tuesday: 8:00 AM - 5:00 PM</li>
+                        <li class="hover:text-white hover:translate-x-1 transition-all">Wednesday: 8:00 AM - 5:00 PM</li>
+                        <li class="hover:text-white hover:translate-x-1 transition-all">Thursday: 8:00 AM - 5:00 PM</li>
+                        <li class="hover:text-white hover:translate-x-1 transition-all">Friday: 8:00 AM - 5:00 PM</li>
                     </ul>
                 </div>
 
-                <!-- Services -->
-                <div>
-                    <h4 class="text-lg font-semibold mb-6 text-white">Services</h4>
-                    <ul class="space-y-3">
-                        <li><a href="#" class="text-neutral-300 hover:text-brand-400 transition-colors">Complete Licensing</a></li>
-                        <li><a href="#" class="text-neutral-300 hover:text-brand-400 transition-colors">Safety Inspections</a></li>
-                        <li><a href="#" class="text-neutral-300 hover:text-brand-400 transition-colors">Training Programs</a></li>
-                        <li><a href="#" class="text-neutral-300 hover:text-brand-400 transition-colors">Document Review</a></li>
-                        <li><a href="#" class="text-neutral-300 hover:text-brand-400 transition-colors">Ongoing Support</a></li>
-                        <li><a href="#" class="text-neutral-300 hover:text-brand-400 transition-colors">Premium Support</a></li>
+                <!-- Socials -->
+                <div class="animate-on-scroll" style="animation-delay: 0.3s;">
+                    <h4 class="section-heading text-lg font-semibold mb-6 text-purple-400">
+                        <i class="fas fa-share-alt mr-2"></i>Follow Us
+                    </h4>
+                    <div class="flex space-x-4">
+                        <a href="#" aria-label="Instagram" class="social-icon group">
+                            <i class="fab fa-instagram text-2xl group-hover:scale-110 transition-transform"></i>
+                        </a>
+                        <a href="#" aria-label="Facebook" class="social-icon group">
+                            <i class="fab fa-facebook text-2xl group-hover:scale-110 transition-transform"></i>
+                        </a>
+                        <a href="#" aria-label="TikTok" class="social-icon group">
+                            <i class="fab fa-tiktok text-2xl group-hover:scale-110 transition-transform"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Main Menu -->
+                <div class="animate-on-scroll" style="animation-delay: 0.4s;">
+                    <h4 class="section-heading text-lg font-semibold mb-6 text-sky-300">
+                        <i class="fas fa-bars mr-2"></i>Main Menu
+                    </h4>
+                    <ul class="space-y-2">
+                        <li><a href="/" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">Home</a></li>
+                        <li><a href="/for-parents" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">For Parents</a></li>
+                        <li><a href="/for-educators" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">For Educators</a></li>
+                        <li><a href="/about" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">About</a></li>
+                        <li><a href="/resources" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">Resources</a></li>
+                        <li><a href="/contact" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">Contact Us</a></li>
+                    </ul>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="animate-on-scroll" style="animation-delay: 0.5s;">
+                    <h4 class="section-heading text-lg font-semibold mb-6 text-sky-300">
+                        <i class="fas fa-link mr-2"></i>Quick Links
+                    </h4>
+                    <ul class="space-y-2 mb-6">
+                        <li><a href="/faqs-parents" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">FAQs for Parents</a></li>
+                        <li><a href="/faqs-educators" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">FAQs for Educators</a></li>
+                        <li><a href="/agency-fees" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">Agency Fees</a></li>
+                    </ul>
+
+                    <h4 class="section-heading text-lg font-semibold mb-6 text-sky-300">
+                        <i class="fas fa-shield-alt mr-2"></i>Privacy Policy
+                    </h4>
+                    <ul class="space-y-2">
+                        <li><a href="/privacy" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">Privacy</a></li>
+                        <li><a href="/terms" class="footer-link text-neutral-300 hover:text-white hover:translate-x-1 inline-block">Terms of Use</a></li>
                     </ul>
                 </div>
             </div>
 
-            <div class="border-t border-neutral-800 pt-8">
-                <div class="flex flex-col md:flex-row justify-between items-center">
-                    <p class="text-neutral-400 text-sm">
-                        © 2024 SPICE'd Dayhome Agency. All rights reserved. Licensed in Alberta, Canada.
-                    </p>
-                    <div class="flex space-x-6 mt-4 md:mt-0">
-                        <a href="/privacy" class="text-neutral-400 hover:text-brand-400 text-sm transition-colors">Privacy Policy</a>
-                        <a href="/terms" class="text-neutral-400 hover:text-brand-400 text-sm transition-colors">Terms of Service</a>
-                        <a href="/accessibility" class="text-neutral-400 hover:text-brand-400 text-sm transition-colors">Accessibility</a>
-                    </div>
-                </div>
+            <!-- Bottom -->
+            <div class="border-t border-neutral-800 pt-8 text-center">
+                <p class="text-neutral-400 text-sm">
+                    <i class="far fa-copyright mr-1"></i>
+                    <span id="currentYear"></span> SPICE'd Childcare Services. All rights reserved.
+                </p>
             </div>
         </div>
     </footer>
 
     <!-- Floating CTA -->
     <div class="fixed bottom-8 right-8 z-50">
-        <a href="/register" class="w-16 h-16 bg-brand-600 hover:bg-brand-700 rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 group">
+        <a href="/apply" class="w-16 h-16 bg-brand-600 hover:bg-brand-700 rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 group">
             <svg class="w-8 h-8 text-white transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
             </svg>
@@ -1121,5 +1284,30 @@
        localStorage.removeItem('darkMode');
         document.documentElement.classList.remove('dark');
     </script>
+    <script>
+    // Auto-update copyright year
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Optional: Intersection Observer for scroll animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        observer.observe(el);
+    });
+</script>
 </body>
 </html> 

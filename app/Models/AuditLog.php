@@ -54,6 +54,12 @@ class AuditLog extends Model
         return $this->morphTo();
     }
 
+    // Alias for model relationship (for backward compatibility)
+    public function auditable()
+    {
+        return $this->morphTo('auditable', 'model_type', 'model_id');
+    }
+
     // Scopes
     public function scopeByUser($query, $userId)
     {

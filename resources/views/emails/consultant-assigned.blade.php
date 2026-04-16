@@ -152,7 +152,6 @@
         </div>
         
         <div class="content">
-            {{-- Fixed: $consultant is already a User model, not a Consultant model --}}
             <p>Hello <strong>{{ $consultant->name }}</strong>,</p>
             
             <p>A new daycare application has been assigned to you for review and processing.</p>

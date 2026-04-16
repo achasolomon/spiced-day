@@ -8,7 +8,7 @@
 
     <title>@yield('title', 'Admin Dashboard') - SPICE'd Dayhome Agency</title>
 
-        <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+        <link rel="icon" type="image/jpg" href="{{ asset('logo.jpeg') }}">
 
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +17,29 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
+    
+       <!-- Timezone Detection Script -->
+    <script>
+        (function() {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            sessionStorage.setItem('userTimezone', timezone);
+            if (window.fetch) {
+                const originalFetch = window.fetch;
+                window.fetch = function(...args) {
+                    const options = args[1] || {};
+                    options.headers = options.headers || {};
+                    options.headers['X-User-Timezone'] = timezone;
+                    return originalFetch.apply(this, [args[0], options]);
+                };
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('input[name="user_timezone"]').forEach(el => {
+                    el.value = timezone;
+                });
+            });
+        })();
+    </script>
 </head>
 <body class="font-sans antialiased bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
     <div class="min-h-screen">
@@ -232,6 +255,15 @@
                         </a>
                     </li>
 
+                     <li>
+                        <a href="{{ route('admin.certificates.adminIndex') }}" class="flex items-center p-2 rounded-lg text-white hover:bg-white/10 {{ request()->routeIs('admin.certificate.*') ? 'bg-white/20' : '' }}">
+                           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2a5 5 0 00-3.89 8.14L7 21l5-3 5 3-1.11-10.86A5 5 0 0012 2zm0 2a3 3 0 110 6 3 3 0 010-6z"/>
+                            </svg>
+                        <span class="ml-3">Certficates</span>
+                        </a>
+                    </li>
+
                     <!-- Region -->
                     <li>
                         <a href="{{ route('admin.regions.index') }}" 
@@ -289,22 +321,13 @@
         <!-- Main Content -->
         <main class="lg:pl-64 pt-20">
             <div class="p-4 sm:p-6 lg:p-8">
-                @if(session('success'))
-                    <div class="mb-4 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                        <p class="text-sm text-green-800 dark:text-green-200">{{ session('success') }}</p>
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p class="text-sm text-red-800 dark:text-red-200">{{ session('error') }}</p>
-                    </div>
-                @endif
-
                 @yield('content')
             </div>
         </main>
     </div>
+
+    <!-- Toast Container -->
+    <x-toast-container />
 
     @stack('scripts')
     <script>

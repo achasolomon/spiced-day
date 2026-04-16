@@ -9,7 +9,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Consultant Dashboard') - SPICE'd Dayhome Agency</title>
 
-     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+     <link rel="icon" type="image/jpg" href="{{ asset('logo.jpeg') }}">
 
 
     <!-- Fonts -->
@@ -20,6 +20,29 @@
     <!-- Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
+    
+      <!-- Timezone Detection Script -->
+    <script>
+        (function() {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            sessionStorage.setItem('userTimezone', timezone);
+            if (window.fetch) {
+                const originalFetch = window.fetch;
+                window.fetch = function(...args) {
+                    const options = args[1] || {};
+                    options.headers = options.headers || {};
+                    options.headers['X-User-Timezone'] = timezone;
+                    return originalFetch.apply(this, [args[0], options]);
+                };
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('input[name="user_timezone"]').forEach(el => {
+                    el.value = timezone;
+                });
+            });
+        })();
+    </script>
 </head>
 
 <body class="font-sans antialiased bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
@@ -138,7 +161,8 @@
                                 <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                                     <li><a href="{{ route('profile.edit') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile Settings</a></li>
                                     <li><a href="{{ route('notifications.index') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Notifications</a></li>
-                                    <li><a href="{{ route('applicant.help') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Help & Support</a></li>
+                                    <li><a href="https://support.spicedchildcare.com/portal/en/home"  target="_blank" 
+                                       rel="noopener noreferrer" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 ">Help & Support</a></li>
                                 </ul>
                                 <div class="py-2">
                                     <form method="POST" action="{{ route('logout') }}">
@@ -226,11 +250,32 @@
         <!-- Main Content -->
         <main class="pt-20 lg:pl-64 transition-all duration-300">
             <div class="p-4 sm:p-6 lg:p-8">
+                @if(session('success'))
+                    <div class="mb-4 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                        <p class="text-sm text-green-800 dark:text-green-200">{{ session('success') }}</p>
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p class="text-sm text-red-800 dark:text-red-200">{{ session('error') }}</p>
+                    </div>
+                @endif
+
+                @if(session('info'))
+                    <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p class="text-sm text-blue-800 dark:text-blue-200">{{ session('info') }}</p>
+                    </div>
+                @endif
+
                 @yield('content')
             </div>
         </main>
 
     </div>
+
+    <!-- Toast Container -->
+    <x-toast-container />
 
     @stack('scripts')
 

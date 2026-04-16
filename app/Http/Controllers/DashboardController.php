@@ -30,7 +30,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Applicant Dashboard
+     * Updated applicant dashboard method
      */
     public function applicant()
     {
@@ -39,14 +39,17 @@ class DashboardController extends Controller
         // Get user's active application
         $activeApplication = $user->getActiveApplication();
         
-        // Get upcoming appointments
-        $upcomingAppointments = $user->appointments()
-            ->where('scheduled_at', '>', now())
-            ->where('status', '!=', 'cancelled')
-            ->with(['consultant', 'application'])
-            ->orderBy('scheduled_at')
-            ->take(3)
-            ->get();
+        // Get upcoming appointments through the active application
+        $upcomingAppointments = collect();
+        if ($activeApplication) {
+            $upcomingAppointments = $activeApplication->appointments()
+                ->where('scheduled_at', '>', now())
+                ->where('status', '!=', 'cancelled')
+                ->with(['consultant', 'application'])
+                ->orderBy('scheduled_at')
+                ->take(3)
+                ->get();
+        }
         
         // Get recent documents
         $recentDocuments = $user->uploadedDocuments()
@@ -56,20 +59,19 @@ class DashboardController extends Controller
             ->get();
         
         // Get pending documents (if they have an active application)
-         $pendingDocuments = [];
-            if ($activeApplication) {
-                $requiredDocs = $activeApplication->getRequiredDocumentsForStage();
-                $uploadedCategories = $activeApplication->documents()
-                    ->where('status', '!=', 'rejected')
-                    ->whereNotNull('document_requirement_id')
-                    ->pluck('document_requirement_id')
-                    ->toArray();
-                    
-                // Fixed: Use array_diff instead of whereNotIn
-                $pendingDocuments = array_diff($requiredDocs->pluck('id')->toArray(), $uploadedCategories);
-
-
-            }
+        $pendingDocuments = [];
+        if ($activeApplication) {
+            $requiredDocs = $activeApplication->getRequiredDocumentsForStage();
+            $uploadedCategories = $activeApplication->documents()
+                ->where('status', '!=', 'rejected')
+                ->whereNotNull('document_requirement_id')
+                ->pluck('document_requirement_id')
+                ->toArray();
+                
+            $pendingDocuments = $requiredDocs->filter(function($req) use ($uploadedCategories) {
+                return !in_array($req->id, $uploadedCategories);
+            });
+        }
         
         // Get notifications
         $notifications = $user->notifications()
@@ -77,13 +79,27 @@ class DashboardController extends Controller
             ->latest()
             ->take(5)
             ->get();
+        
+        // Get application stats
+        $applicationStats = null;
+        if ($activeApplication) {
+            $applicationStats = [
+                'overall_progress' => $activeApplication->application_progress_percentage,
+                'form_completion' => $activeApplication->completion_percentage,
+                'document_completion' => $activeApplication->document_completion_percentage,
+                'current_stage' => $activeApplication->current_stage_name,
+                'is_post_activation' => $activeApplication->isInPostActivationPhase(),
+                'is_terminal' => $activeApplication->isInTerminalState(),
+            ];
+        }
 
         return view('applicant.dashboard', compact(
             'activeApplication',
             'upcomingAppointments', 
             'recentDocuments',
             'pendingDocuments',
-            'notifications'
+            'notifications',
+            'applicationStats'
         ));
     }
 
@@ -100,9 +116,10 @@ class DashboardController extends Controller
             ->with(['user', 'stages'])
             ->whereIn('status', [
                 'submitted', 'under_review', 'initial_inspection_scheduled',
-                'initial_inspection_completed', 'documents_required',
+                'initial_inspection_completed', 'documents_required', 'documents_submitted', 'documents_approved',
                 'second_inspection_scheduled', 'second_inspection_completed',
-                'final_review'
+                'final_inspection_scheduled', 'final_inspection_completed', 'final_inspection_passed', 'final_inspection_failed', 'contract_signing_scheduled', 'contract_signed', 'approved', 'active',
+
             ])
             ->orderBy('created_at', 'desc')
             ->take(10)
@@ -208,7 +225,6 @@ class DashboardController extends Controller
             ->pluck('count', 'month')
             ->toArray();
 
-        // Consultant Performance - FIXED: Filter out null users
         $consultantPerformance = User::consultants()
             ->with('consultant')
             ->withCount([
@@ -221,7 +237,7 @@ class DashboardController extends Controller
             ->get()
             ->filter(function($user) {
                 // Only include users that exist and have a consultant relationship
-                return $user && $user->consultant !== null;
+                return $user && $user->consultant != null;
             })
             ->sortByDesc('completed_this_month')
             ->take(5);
@@ -311,18 +327,35 @@ class DashboardController extends Controller
     }
 
     private function getApplicantStats($user)
-    {
-        $activeApp = $user->getActiveApplication();
-        
+{
+    $activeApp = $user->getActiveApplication();
+    
+    if (!$activeApp) {
         return [
-            'application_progress' => $activeApp?->completion_percentage ?? 0,
-            'documents_uploaded' => $user->uploadedDocuments()->count(),
-            'documents_approved' => $user->uploadedDocuments()->approved()->count(),
-            'next_appointment' => $user->appointments()
-                ->where('scheduled_at', '>', now())
-                ->where('status', '!=', 'cancelled')
-                ->min('scheduled_at'),
+            'application_progress' => 0,
+            'documents_uploaded' => 0,
+            'documents_approved' => 0,
+            'next_appointment' => null,
         ];
+    }
+    
+    return [
+        // Use the application_progress_percentage attribute
+        'application_progress' => $activeApp->application_progress_percentage ?? 0,
+        'form_completion' => $activeApp->completion_percentage ?? 0,
+        'document_completion' => $activeApp->document_completion_percentage ?? 0,
+        'combined_progress' => $activeApp->combined_progress ?? 0,
+        'current_stage' => $activeApp->current_stage_name ?? 'Unknown',
+        'documents_uploaded' => $user->uploadedDocuments()->count(),
+        'documents_approved' => $user->uploadedDocuments()->approved()->count(),
+        'documents_pending' => $user->uploadedDocuments()->pendingReview()->count(),
+        'next_appointment' => $activeApp->appointments()
+            ->where('scheduled_at', '>', now())
+            ->where('status', '!=', 'cancelled')
+            ->min('scheduled_at'),
+        'is_post_activation' => $activeApp->isInPostActivationPhase(),
+        'is_terminal' => $activeApp->isInTerminalState(),
+    ];
     }
 
     private function getConsultantStats($user)

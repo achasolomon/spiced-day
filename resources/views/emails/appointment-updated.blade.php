@@ -14,7 +14,7 @@
             padding: 20px;
         }
         .header {
-            background-color: #43049bff;
+            background-color: #7c0bb9;
             color: white;
             padding: 20px;
             text-align: center;
@@ -84,7 +84,7 @@
     </div>
     
     <div class="content">
-        <p>Hello {{ $appointment->applicant->name }},</p>
+        <p>Hello {{ $appointment->applicant->name ?? $appointment->application->educator_first_name ?? 'there' }},</p>
         
         <div class="alert-box">
             <strong>⚠️ Important:</strong> Your appointment has been updated and requires your confirmation.
@@ -102,7 +102,7 @@
             
             <div class="detail-row">
                 <div class="detail-label">Date & Time</div>
-                <div class="detail-value">{{ $appointment->scheduled_at->format('l, F j, Y \a\t g:i A') }}</div>
+                <div class="detail-value">{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $appointment->applicant ?? $appointment->consultant, 'l, F j, Y \a\t g:i A') }}</div>
             </div>
             
             <div class="detail-row">
@@ -132,6 +132,13 @@
             </div>
             @endif
             
+            @if($appointment->reschedule_reason)
+            <div class="detail-row">
+                <div class="detail-label">Reason for Change</div>
+                <div class="detail-value">{{ $appointment->reschedule_reason }}</div>
+            </div>
+            @endif
+            
             <div class="detail-row">
                 <div class="detail-label">Consultant</div>
                 <div class="detail-value">
@@ -141,12 +148,27 @@
             </div>
         </div>
         
-        <div style="text-align: center;">
-            <a href="{{ route('applicant.appointments.show', $appointment->id) }}" class="button">
-                View & Confirm Appointment
+        @if($appointment->confirmation_token)
+        <div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8fafc; border-radius: 8px;">
+            <h3 style="color: #374151; margin-bottom: 15px;">Action Required: Confirm Your Appointment</h3>
+            <p style="color: #6b7280; margin-bottom: 20px;">Please confirm your availability by clicking the button below:</p>
+            
+            <a href="{{ route('appointments.confirm-by-email', ['appointment' => $appointment->id, 'token' => $appointment->confirmation_token]) }}" 
+               style="background: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin-bottom: 15px;">
+                Confirm Appointment
             </a>
+            
+            <p style="color: #6b7280; font-size: 14px;">
+                Or <a href="{{ route('appointments.confirm-by-email', ['appointment' => $appointment->id, 'token' => $appointment->confirmation_token, 'action' => 'reschedule']) }}" 
+                      style="color: #7c0bb9; text-decoration: underline;">request to reschedule</a> if this time doesn't work for you.
+            </p>
         </div>
-        
+        @else
+        <div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8fafc; border-radius: 8px;">
+            <p style="color: #6b7280;">Please log in to your account to confirm this appointment.</p>
+        </div>
+        @endif
+                
         <p style="margin-top: 30px; font-size: 14px; color: #6b7280;">
             <strong>Note:</strong> This appointment will remain in "Scheduled" status until both you and the consultant confirm the updated details.
         </p>

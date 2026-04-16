@@ -31,7 +31,7 @@ class ConsultantAssigned extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "New Application Assigned - {$this->application->application_number}",
+            subject: "New Application Assigned",
         );
     }
 

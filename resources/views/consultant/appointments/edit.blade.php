@@ -22,6 +22,7 @@
         <form action="{{ route('consultant.appointments.update', $appointment) }}" method="POST">
             @csrf
             @method('PUT')
+            <input type="hidden" name="user_timezone" id="appointment_user_timezone" value="{{ old('user_timezone', auth()->user()?->timezone ?? config('app.timezone')) }}">
 
             <div class="space-y-4 md:space-y-6">
                 <!-- Application (Read-only) -->
@@ -32,7 +33,7 @@
                             {{ $appointment->application->full_name }} - {{ $appointment->application->application_number }}
                         </p>
                         <p class="text-sm text-gray-600 dark:text-gray-400">
-                            {{ $appointment->applicant->email }}
+                            {{ $appointment->applicant->email ?? $appointment->application->email }}
                         </p>
                     </div>
                 </div>
@@ -82,6 +83,13 @@
                     @enderror
                 </div>
 
+                @php
+                    $userTimezone = auth()->user()?->timezone ?? config('app.timezone');
+                    $scheduledAtValue = $appointment->scheduled_at
+                        ? $appointment->scheduled_at->timezone($userTimezone)->format('Y-m-d\TH:i')
+                        : '';
+                @endphp
+
                 <!-- Date, Time & Duration -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -89,7 +97,7 @@
                         <input 
                             type="datetime-local" 
                             name="scheduled_at" 
-                            value="{{ old('scheduled_at', $appointment->scheduled_at->format('Y-m-d\TH:i')) }}"
+                            value="{{ old('scheduled_at', $scheduledAtValue) }}"
                             required 
                             class="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
                         @error('scheduled_at')

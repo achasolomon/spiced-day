@@ -78,14 +78,100 @@
     {{-- Upcoming Appointments --}}
     @if($upcomingAppointments->count() > 0)
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white">Upcoming Appointments</h2>
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Upcoming Appointments</h2>
         </div>
 
-        <div class="p-6 space-y-4">
+        <div class="p-4 sm:p-6 space-y-4">
             @foreach($upcomingAppointments as $appointment)
-                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between gap-4">
+                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-5 hover:shadow-md transition-shadow">
+                    {{-- Mobile Layout --}}
+                    <div class="flex flex-col sm:hidden space-y-4">
+                        {{-- Header with Date and Status --}}
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                <div class="flex-shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center text-white" style="background: linear-gradient(135deg, #553e96 0%, #7c3aed 100%);">
+                                    <span class="text-xs font-semibold">{{ $appointment->scheduled_at->format('M') }}</span>
+                                    <span class="text-xl font-bold">{{ $appointment->scheduled_at->format('d') }}</span>
+                                </div>
+                                
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-1 break-words">
+                                        {{ $appointment->title }}
+                                    </h3>
+                                    <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold
+                                        {{ $appointment->status === 'scheduled' ? 'bg-blue-100 text-blue-800' : '' }}
+                                        {{ $appointment->status === 'confirmed' ? 'bg-green-100 text-green-800' : '' }}">
+                                        {{ ucfirst($appointment->status) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {{-- Details --}}
+                        <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                </svg>
+                                <div class="flex-1 break-words">
+                                    <div>{{ $appointment->scheduled_at->format('l, F j, Y') }}</div>
+                                    <div>{{ $appointment->scheduled_at->format('g:i A') }} • {{ $appointment->duration }} min</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="flex-1 break-words">{{ $appointment->location_address }}</span>
+                            </div>
+                            
+                            @if($appointment->consultant)
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="flex-1">With {{ $appointment->consultant->name }}</span>
+                                </div>
+                            @endif
+                        </div>
+
+                        @if($appointment->description)
+                            <p class="text-sm text-gray-600 dark:text-gray-400 break-words">
+                                {{ $appointment->description }}
+                            </p>
+                        @endif
+
+                        @if(!$appointment->applicant_confirmed && $appointment->status === 'scheduled')
+                            <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                <p class="text-xs text-yellow-800 dark:text-yellow-200 font-medium">
+                                    Please confirm your attendance for this appointment
+                                </p>
+                            </div>
+                        @endif
+
+                        {{-- Action Buttons (Mobile) --}}
+                        <div class="flex flex-col gap-2">
+                            <a href="{{ route('applicant.appointments.show', $appointment) }}" 
+                            class="w-full px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors text-center">
+                                View Details
+                            </a>
+                            
+                            @if(!$appointment->applicant_confirmed && $appointment->status === 'scheduled')
+                                <form action="{{ route('applicant.appointments.confirm', $appointment) }}" method="POST">
+                                    @csrf
+                                    <button type="submit"
+                                            class="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors">
+                                        Confirm Attendance
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Desktop Layout --}}
+                    <div class="hidden sm:flex items-start justify-between gap-4">
                         <div class="flex items-start gap-4 flex-1">
                             <div class="flex-shrink-0 w-16 h-16 rounded-xl flex flex-col items-center justify-center text-white" style="background: linear-gradient(135deg, #553e96 0%, #7c3aed 100%);">
                                 <span class="text-xs font-semibold">{{ $appointment->scheduled_at->format('M') }}</span>
@@ -149,7 +235,7 @@
                         
                         <div class="flex flex-col gap-2">
                             <a href="{{ route('applicant.appointments.show', $appointment) }}" 
-                               class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors text-center">
+                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors text-center whitespace-nowrap">
                                 View Details
                             </a>
                             
@@ -157,7 +243,7 @@
                                 <form action="{{ route('applicant.appointments.confirm', $appointment) }}" method="POST">
                                     @csrf
                                     <button type="submit"
-                                            class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors">
+                                            class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors whitespace-nowrap">
                                         Confirm
                                     </button>
                                 </form>

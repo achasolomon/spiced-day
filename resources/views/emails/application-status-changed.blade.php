@@ -19,9 +19,9 @@
         
         <div class="content">
             <p>Hello {{ $isConsultant ? $application->consultant->name : $application->full_name }},</p>
-            
             <p><strong>Application #{{ $application->application_number }}</strong></p>
-            
+
+                        
             <p>Your application status has been updated to:</p>
             <p style="text-align: center;">
                 <span class="status-badge" style="background: {{ $newStatus->color() === 'white' ? '#f9fafb' : ($newStatus->color() === '7c0bb9ff' ? '#7c0bb9ff' : '#f59e0b') }}; color: white;">

@@ -143,7 +143,12 @@ class Consultant extends Model
             'documents_approved',
             'second_inspection_scheduled',
             'second_inspection_completed',
-            'final_review'
+            'final_inspection_scheduled',
+            'final_inspection_completed',
+            'contract_signing_scheduled',
+            'contract_signed',
+            'approved',
+            'active',
         ];
 
         // Count active applications assigned to this consultant

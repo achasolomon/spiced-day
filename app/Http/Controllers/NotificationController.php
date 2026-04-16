@@ -5,6 +5,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -53,12 +54,6 @@ class NotificationController extends Controller
         // Gate::authorize('update', $notification);
 
         $notification->markAsRead();
-
-        \Log::debug('Notification marked as read', [
-            'notification_id' => $notification->id,
-            'is_read_after' => $notification->is_read,
-            'read_at' => $notification->read_at,
-        ]);
 
         return response()->json(['success' => true]);
     } catch (\Exception $e) {

@@ -112,7 +112,7 @@
                                         class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                                focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
                                     <option value="applicant" :selected="userData?.user_type === 'applicant'">Applicant</option>
-                                    <option value="consultant" :selected="userData?.user_type === 'consultant'">Consultant</option>
+                                    <!-- <option value="consultant" :selected="userData?.user_type === 'consultant'">Consultant</option> -->
                                     <option value="admin" :selected="userData?.user_type === 'admin'">Admin</option>
                                 </select>
                                 @error('user_type')

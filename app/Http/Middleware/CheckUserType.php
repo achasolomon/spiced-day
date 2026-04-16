@@ -33,7 +33,13 @@ class CheckUserType
         // Check if user has the required user type
         if ($user->user_type !== $userType) {
             // Redirect to appropriate dashboard based on their actual role
-            return redirect()->route($user->getDashboardRoute())
+            $dashboardRoute = match($user->user_type) {
+                'applicant' => 'applicant.dashboard',
+                'consultant' => 'consultant.dashboard',
+                'admin' => 'admin.dashboard',
+                default => 'dashboard',
+            };
+            return redirect()->route($dashboardRoute)
                 ->with('error', 'You do not have permission to access that area.');
         }
 

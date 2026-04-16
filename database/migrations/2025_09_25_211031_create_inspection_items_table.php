@@ -1,6 +1,6 @@
 <?php
 // =================================================================
-// MIGRATION 9: create_inspection_items_table.php
+// Migration 9: create_inspection_items_table.php
 // =================================================================
 
 use Illuminate\Database\Migrations\Migration;
@@ -42,6 +42,7 @@ return new class extends Migration
             // Assessment
             $table->enum('response_type', [
                 'yes_no',
+                'yes_no_na',
                 'rating_scale',
                 'checklist',
                 'numeric',
@@ -55,9 +56,21 @@ return new class extends Migration
             
             // Scoring and Importance
             $table->integer('weight')->default(1);
-            $table->boolean('is_critical')->default(false);
+            
+            // NEW: Dynamic critical status based on inspection type
+            $table->boolean('is_critical_initial')->default(false); // Critical for initial inspection
+            $table->boolean('is_critical_second')->default(true); // All items critical for second
+            $table->boolean('is_critical_final')->default(true); // All items critical for final
+            $table->boolean('is_critical_compliance')->default(true); // All items critical for compliance
+            
             $table->boolean('is_mandatory')->default(true);
             $table->decimal('points_possible', 5, 2)->default(1.00);
+            
+            // NEW: Inspection Stage Applicability
+            $table->boolean('included_in_initial')->default(true);
+            $table->boolean('included_in_second')->default(false); // Only 60 items for second/final
+            $table->boolean('included_in_final')->default(false); // Same 60 items as second
+            $table->boolean('included_in_compliance')->default(false); // Same 60 items
             
             // Conditions
             $table->json('applicable_when')->nullable();
@@ -78,7 +91,8 @@ return new class extends Migration
             // Indexes
             $table->index(['checklist_id', 'sort_order']);
             $table->index(['category', 'is_active']);
-            $table->index(['is_critical', 'is_mandatory']);
+            $table->index(['included_in_initial', 'included_in_second', 'included_in_final'],     'inspection_items_inclusion_idx'
+        );
         });
     }
 

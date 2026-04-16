@@ -73,6 +73,16 @@ class Document extends Model
         return $this->belongsTo(DocumentRequirement::class, 'document_requirement_id');
     }
 
+    public function documentCategory()
+    {
+        return $this->belongsTo(DocumentCategory::class, 'document_category_id');
+    }
+
+    public function documentType()
+    {
+        return $this->belongsTo(DocumentType::class, 'document_type_id');
+    }
+
     public function replacesDocument()
     {
         return $this->belongsTo(Document::class, 'replaces_document_id');

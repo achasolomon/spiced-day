@@ -15,7 +15,7 @@
             padding: 20px;
         }
         .header {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: #7c0bb9;
             color: white;
             padding: 30px;
             border-radius: 10px 10px 0 0;
@@ -41,7 +41,7 @@
             border: 1px solid #e0e0e0;
         }
         .countdown-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #7c0bb9;
             color: white;
             padding: 25px;
             border-radius: 10px;
@@ -121,31 +121,31 @@
         <p>Hi {{ $recipient === 'applicant' ? $appointment->applicant->name : $appointment->consultant->name }},</p>
 
         <div class="countdown-box">
-            <h2>🕐 1 HOUR</h2>
+            <h2>1 HOUR</h2>
             <p>until your appointment</p>
         </div>
 
-        <p style="font-size: 16px; font-weight: bold; color: #f5576c;">
-            Your appointment is scheduled to begin at {{ $appointment->scheduled_at->format('g:i A') }}
+        <p style="font-size: 16px; font-weight: bold; color: #7c0bb9;">
+            Your appointment is scheduled to begin at {{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant, 'g:i A') }}
         </p>
 
         <div class="appointment-card">
-            <h2 style="margin-top: 0; color: #f5576c;">{{ $appointment->title }}</h2>
+            <h2 style="margin-top: 0; color: #7c0bb9;">{{ $appointment->title }}</h2>
             
             <div class="detail-row">
-                <div class="detail-label">🕐 Time:</div>
+                <div class="detail-label">Time:</div>
                 <div class="detail-value">
-                    <strong>{{ $appointment->scheduled_at->format('g:i A') }}</strong>
+                    <strong>{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant, 'g:i A') }}</strong>
                 </div>
             </div>
 
             <div class="detail-row">
-                <div class="detail-label">⏱️ Duration:</div>
+                <div class="detail-label"> Duration:</div>
                 <div class="detail-value">{{ $appointment->duration }} minutes</div>
             </div>
 
             <div class="detail-row">
-                <div class="detail-label">📍 Location:</div>
+                <div class="detail-label">Location:</div>
                 <div class="detail-value">
                     <strong>{{ $appointment->location_address }}</strong>
                 </div>
@@ -153,12 +153,12 @@
 
             @if($recipient === 'applicant')
                 <div class="detail-row">
-                    <div class="detail-label">👤 Consultant:</div>
+                    <div class="detail-label">Consultant:</div>
                     <div class="detail-value">{{ $appointment->consultant->name }}</div>
                 </div>
             @else
                 <div class="detail-row">
-                    <div class="detail-label">👤 Applicant:</div>
+                    <div class="detail-label">Applicant:</div>
                     <div class="detail-value">{{ $appointment->applicant->name }}</div>
                 </div>
             @endif
@@ -166,7 +166,7 @@
 
         @if($appointment->location_notes)
             <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
-                <strong>📝 Location Notes:</strong>
+                <strong> Location Notes:</strong>
                 <p style="margin: 5px 0 0 0;">{{ $appointment->location_notes }}</p>
             </div>
         @endif
@@ -174,18 +174,18 @@
         <div style="text-align: center; margin: 30px 0;">
             @if($recipient === 'applicant')
                 <a href="{{ route('applicant.appointments.show', $appointment) }}" class="button">
-                    📱 View Appointment Details
+                    View Appointment Details
                 </a>
             @else
                 <a href="{{ route('consultant.appointments.show', $appointment) }}" class="button">
-                    📱 View Appointment Details
+                 View Appointment Details
                 </a>
             @endif
         </div>
 
         <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <p style="margin: 0; color: #1976d2;">
-                <strong>💡 Pro Tip:</strong> Allow extra time for travel and parking. We look forward to seeing you soon!
+                <strong>Pro Tip:</strong> Allow extra time for travel and parking. We look forward to seeing you soon!
             </p>
         </div>
     </div>

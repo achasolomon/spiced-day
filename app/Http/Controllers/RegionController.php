@@ -11,15 +11,23 @@ class RegionController extends Controller
     /**
      * Display a listing of the regions.
      */
-    public function index()
-    {
-        $regions = Region::withCount('postalCodeRanges', 'consultants')
-            ->orderBy('name')
-            ->paginate(15);
+   public function index(Request $request)
+{
+    $query = Region::query();
 
-        return view('admin.regions.index', compact('regions'));
+    // Filter by search
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where('name', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
     }
 
+    $regions = $query->withCount('postalCodeRanges', 'consultants')
+        ->orderBy('name')
+        ->paginate(15);
+
+    return view('admin.regions.index', compact('regions'));
+}
     /**
      * Store a newly created region in storage.
      */

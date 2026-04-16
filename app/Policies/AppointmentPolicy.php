@@ -27,13 +27,26 @@ class AppointmentPolicy
             return true;
         }
 
-        // Consultant can view if assigned
-        if ($user->user_type === 'consultant' && $appointment->consultant_id === $user->id) {
-            return true;
+        // Consultant can view if assigned to appointment or application
+        if ($user->user_type === 'consultant') {
+            if ($appointment->consultant_id && $appointment->consultant_id == $user->id) {
+                return true;
+            }
+            
+            // Load application if not already loaded
+            if ($appointment->application_id) {
+                if (!$appointment->relationLoaded('application')) {
+                    $appointment->load('application');
+                }
+                
+                if ($appointment->application && $appointment->application->consultant_id && $appointment->application->consultant_id == $user->id) {
+                    return true;
+                }
+            }
         }
 
         // Applicant can view their own
-        if ($user->user_type === 'applicant' && $appointment->applicant_id === $user->id) {
+        if ($user->user_type === 'applicant' && $appointment->applicant_id && $appointment->applicant_id == $user->id) {
             return true;
         }
 
@@ -59,9 +72,30 @@ class AppointmentPolicy
             return true;
         }
 
-        // Consultant can update their own appointments
-        if ($user->user_type === 'consultant' && $appointment->consultant_id === $user->id) {
-            return true;
+        // Consultant can update their own appointments or appointments for applications they're assigned to
+        if ($user->user_type === 'consultant') {
+            // Check if consultant is assigned to the appointment
+            if ($appointment->consultant_id && $appointment->consultant_id == $user->id) {
+                return true;
+            }
+            
+            // Check if consultant is assigned to the application (load relationship if needed)
+            if ($appointment->application_id) {
+                // Load application if not already loaded
+                if (!$appointment->relationLoaded('application')) {
+                    $appointment->load('application');
+                }
+                
+                if ($appointment->application && $appointment->application->consultant_id && $appointment->application->consultant_id == $user->id) {
+                    return true;
+                }
+            }
+            
+            // If appointment has no consultant_id but consultant can view it, allow update
+            // This handles cases where appointment was created without explicit consultant assignment
+            if (!$appointment->consultant_id && $this->view($user, $appointment)) {
+                return true;
+            }
         }
 
         return false;
@@ -77,9 +111,14 @@ class AppointmentPolicy
             return true;
         }
 
-        // Consultant can cancel their own appointments (soft delete)
-        if ($user->user_type === 'consultant' && $appointment->consultant_id === $user->id) {
-            return true;
+        // Consultant can cancel their own appointments or appointments for applications they're assigned to (soft delete)
+        if ($user->user_type === 'consultant') {
+            if ($appointment->consultant_id == $user->id) {
+                return true;
+            }
+            if ($appointment->application && $appointment->application->consultant_id == $user->id) {
+                return true;
+            }
         }
 
         return false;
@@ -90,13 +129,38 @@ class AppointmentPolicy
      */
     public function confirm(User $user, Appointment $appointment): bool
     {
-        // Consultant can confirm their appointments
-        if ($user->id === $appointment->consultant_id) {
+        // Admin can confirm all
+        if ($user->user_type === 'admin') {
             return true;
         }
 
+        // Consultant can confirm their appointments or appointments for applications they're assigned to
+        if ($user->user_type === 'consultant') {
+            // Check if consultant is directly assigned to the appointment
+            if ($appointment->consultant_id && $appointment->consultant_id == $user->id) {
+                return true;
+            }
+            
+            // Check if consultant is assigned to the application (load relationship if needed)
+            if ($appointment->application_id) {
+                if (!$appointment->relationLoaded('application')) {
+                    $appointment->load('application');
+                }
+                
+                if ($appointment->application && $appointment->application->consultant_id && $appointment->application->consultant_id == $user->id) {
+                    return true;
+                }
+            }
+            
+            // If appointment has no consultant_id but consultant can view it, allow confirmation
+            // This handles cases where appointment was created without explicit consultant assignment
+            if (!$appointment->consultant_id && $this->view($user, $appointment)) {
+                return true;
+            }
+        }
+
         // Applicant can confirm their appointments
-        if ($user->id === $appointment->applicant_id) {
+        if ($appointment->applicant_id && $appointment->applicant_id == $user->id) {
             return true;
         }
 
@@ -108,8 +172,38 @@ class AppointmentPolicy
      */
     public function complete(User $user, Appointment $appointment): bool
     {
-        // Only consultant or admin can mark as completed
-        return $user->user_type === 'admin' || 
-               ($user->user_type === 'consultant' && $appointment->consultant_id === $user->id);
+        // Admin can complete all
+        if ($user->user_type === 'admin') {
+            return true;
+        }
+
+        // Consultant can complete appointments they're assigned to or appointments for applications they're assigned to
+        if ($user->user_type === 'consultant') {
+            // Check if consultant is directly assigned to the appointment
+            if ($appointment->consultant_id && $appointment->consultant_id == $user->id) {
+                return true;
+            }
+            
+            // Check if consultant is assigned to the application (load relationship if needed)
+            if ($appointment->application_id) {
+                // Load application if not already loaded
+                if (!$appointment->relationLoaded('application')) {
+                    $appointment->load('application');
+                }
+                
+                if ($appointment->application && $appointment->application->consultant_id && $appointment->application->consultant_id == $user->id) {
+                    return true;
+                }
+            }
+            
+            // If appointment has no consultant_id but consultant can view it, allow completion
+            // This handles cases where appointment was created without explicit consultant assignment
+            if (!$appointment->consultant_id && $this->view($user, $appointment)) {
+                return true;
+            }
+        }
+
+        return false;
     }
+
 }

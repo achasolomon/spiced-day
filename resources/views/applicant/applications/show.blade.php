@@ -51,11 +51,11 @@
         <div class="mt-6">
             <div class="flex items-center justify-between text-sm mb-2">
                 <span class="text-gray-600 dark:text-gray-400 font-medium">Application Completion</span>
-                <span class="text-gray-900 dark:text-white font-bold">{{ number_format($application->completion_percentage, 0) }}%</span>
+                <span class="text-gray-900 dark:text-white font-bold">{{ number_format($application->application_progress_percentage, 0) }}%</span>
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                 <div class="h-3 rounded-full transition-all duration-500" 
-                     style="width: {{ $application->completion_percentage }}%; background: linear-gradient(90deg, #553e96 0%, #7c3aed 100%);">
+                     style="width: {{ $application->application_progress_percentage }}%; background: linear-gradient(90deg, #553e96 0%, #7c3aed 100%);">
                 </div>
             </div>
         </div>
@@ -74,7 +74,9 @@
                 'documents_pending' => 'Please upload the required documents to proceed with your application.',
                 'documents_submitted' => 'Documents received and under review. You will be notified once approved.',
                 'second_inspection_scheduled' => 'Your second inspection is scheduled. Please ensure all previous requirements have been addressed.',
-                'second_inspection_completed' => 'Second inspection completed successfully. Moving to contract signing.',
+                'second_inspection_completed' => 'Second inspection completed successfully. Moving to finial inspection.',
+                'final_inspection_scheduled' => 'Your final inspection is scheduled. This is the last step before contract signing.',
+                'final_inspection_completed' => 'Final inspection completed. Preparing your contract for signing.',
                 'contract_signing_scheduled' => 'Your contract signing appointment is scheduled. Please bring required identification.',
                 'contract_signed' => 'Contract signed! Your application is in final review.',
                 'approved' => 'Congratulations! Your dayhome has been approved and licensed.',
@@ -97,6 +99,213 @@
         </div>
         @endif
     </div>
+
+    {{-- Congratulations Message for Approved Applications --}}
+@if($application->status === 'approved')
+<div class="relative overflow-hidden bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl shadow-lg border-2 border-green-200 dark:border-green-700 p-8">
+    {{-- Animated background sparkles --}}
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+    </div>
+    
+    <div class="relative z-10">
+        <div class="flex items-start gap-4">
+
+            <div class="flex-1">
+                <h2 class="text-3xl font-bold text-green-800 dark:text-green-200 mb-2">
+                    🎉 Congratulations!
+                </h2>
+                <p class="text-lg text-green-700 dark:text-green-300 mb-4">
+                    Your dayhome application has been <span class="font-bold">approved</span>! You are now licensed to operate as a SPICE'd Childcare Services dayhome.
+                </p>
+                
+                {{-- Certificate Information --}}
+                @if($application->certificate)
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-green-200 dark:border-green-700">
+                    <div class="flex items-center justify-between flex-wrap gap-3">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Certificate Number</p>
+                            <p class="text-lg font-bold text-gray-900 dark:text-white">
+                                {{ $application->certificate->certificate_number }}
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Issued: {{ $application->certificate->issue_date->format('F j, Y') }} • 
+                                Valid Until: {{ $application->certificate->expiry_date->format('F j, Y') }}
+                            </p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <a href="{{ route('applicant.certificates.preview', $application->certificate) }}" 
+                               target="_blank"
+                               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                View Certificate
+                            </a>
+                            <a href="{{ route('applicant.certificates.download', $application->certificate) }}" 
+                               class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Download PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @endif
+                
+                <div class="space-y-2 text-sm text-green-700 dark:text-green-300">
+                    <p class="flex items-start gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Your certificate is valid for one year from the issue date
+                    </p>
+                    <p class="flex items-start gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        We'll notify you before your certificate expires
+                    </p>
+                    <p class="flex items-start gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Keep a copy of your certificate for your records
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1) rotate(180deg);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+    }
+    25% {
+        transform: translateY(-20px) translateX(10px);
+    }
+    75% {
+        transform: translateY(-10px) translateX(-10px);
+    }
+}
+
+.sparkle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, #ffd700 0%, transparent 70%);
+    border-radius: 50%;
+    animation: sparkle 3s infinite, float 4s infinite;
+    pointer-events: none;
+}
+
+.sparkle:nth-child(1) {
+    top: 10%;
+    left: 15%;
+    animation-delay: 0s, 0s;
+}
+
+.sparkle:nth-child(2) {
+    top: 20%;
+    right: 20%;
+    animation-delay: 0.5s, 1s;
+}
+
+.sparkle:nth-child(3) {
+    bottom: 30%;
+    left: 25%;
+    animation-delay: 1s, 0.5s;
+}
+
+.sparkle:nth-child(4) {
+    bottom: 15%;
+    right: 15%;
+    animation-delay: 1.5s, 2s;
+}
+
+.sparkle:nth-child(5) {
+    top: 50%;
+    left: 50%;
+    animation-delay: 2s, 1.5s;
+}
+
+@keyframes bounce-slow {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.animate-bounce-slow {
+    animation: bounce-slow 2s infinite;
+}
+</style>
+@endif
+
+{{-- Active Status Certificate Access --}}
+@if($application->status === 'active' && $application->certificate)
+<div class="bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-700 p-6">
+    <div class="flex items-start gap-4">
+        <div class="flex-shrink-0">
+            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="flex-1">
+            <h3 class="text-lg font-bold text-blue-900 dark:text-blue-200 mb-2">
+                Your Certificate
+            </h3>
+            <p class="text-sm text-blue-800 dark:text-blue-300 mb-3">
+                Certificate #{{ $application->certificate->certificate_number }} • 
+                Valid until {{ $application->certificate->expiry_date->format('F j, Y') }}
+            </p>
+            <div class="flex gap-2">
+                <a href="{{ route('applicant.certificates.preview', $application->certificate) }}" 
+                   target="_blank"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    View Certificate
+                </a>
+                <a href="{{ route('applicant.certificates.download', $application->certificate) }}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
     {{-- Personal Information --}}
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -311,6 +520,51 @@
             @endif
         </div>
     </div>
+
+    {{-- Inspections --}}
+    @if($application->inspections()->count() > 0)
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Inspection Reports
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="space-y-3">
+                @foreach($application->inspections()->latest('conducted_at')->get() as $inspection)
+                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                {{ ucwords(str_replace('_', ' ', $inspection->type)) }}
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                Conducted on {{ $inspection->conducted_at->format('M d, Y') }} by {{ $inspection->consultant->name ?? 'Consultant' }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{ $inspection->overall_result === 'pass' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : '' }}
+                                    {{ $inspection->overall_result === 'fail' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}
+                                    {{ $inspection->overall_result === 'conditional_pass' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : '' }}">
+                                    {{ ucfirst(str_replace('_', ' ', $inspection->overall_result)) }}
+                                </span>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Score: {{ $inspection->overall_score ?? 'N/A' }}%</p>
+                            </div>
+                            <a href="{{ route('applicant.inspections.show', $inspection) }}" 
+                               class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm">
+                                View Report
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Action Buttons --}}
     <div class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">

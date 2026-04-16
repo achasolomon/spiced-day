@@ -80,7 +80,7 @@
                                 class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                        focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
                                 <option value="applicant">Applicant</option>
-                                <option value="consultant">Consultant</option>
+                                <!-- <option value="consultant">Consultant</option> -->
                                 <option value="admin">Admin</option>
                             </select>
                             @error('user_type')

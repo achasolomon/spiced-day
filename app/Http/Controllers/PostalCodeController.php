@@ -14,22 +14,40 @@ class PostalCodeController extends Controller
     /**
      * Display a listing of the postal code ranges.
      */
-    public function index()
-    {
-        try {
-            $postalCodes = PostalCodeRange::with('region')
-                ->orderBy('region_id')
-                ->orderBy('prefix')
-                ->paginate(20);
+   /**
+ * Display a listing of the postal code ranges.
+ */
+public function index(Request $request)
+{
+    try {
+        $query = PostalCodeRange::query();
 
-            $regions = Region::orderBy('name')->get();
-
-            return view('admin.postal-codes.index', compact('postalCodes', 'regions'));
-        } catch (\Exception $e) {
-            Log::error('Error loading postal codes: ' . $e->getMessage());
-            return back()->with('error', 'Failed to load postal codes.');
+        // Filter by search (prefix)
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('prefix', 'like', "%{$search}%");
         }
+
+        // Filter by region
+        if ($request->filled('region_id')) {
+            $query->where('region_id', $request->input('region_id'));
+        }
+
+        // Get paginated results with region loaded
+        $postalCodes = $query->with('region')
+            ->orderBy('region_id')
+            ->orderBy('prefix')
+            ->paginate(20);
+
+        // Get all regions for the filter dropdown
+        $regions = Region::orderBy('name')->get();
+
+        return view('admin.postal-codes.index', compact('postalCodes', 'regions'));
+    } catch (\Exception $e) {
+        Log::error('Error loading postal codes: ' . $e->getMessage());
+        return back()->with('error', 'Failed to load postal codes.');
     }
+}
 
     /**
      * Store a newly created postal code range in storage.

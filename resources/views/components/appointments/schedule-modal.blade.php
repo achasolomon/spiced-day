@@ -8,7 +8,9 @@
         applicantId: null,
         applicantAddress: '',
         showApplicationSelector: false,
-        applications: @js($applications ?? [])
+        applications: @js($applications ?? []),
+        appointmentType: '{{ old('type', '') }}', // Track appointment type for conditional fields
+        inspectionType: '{{ old('inspection_type', '') }}' // Track inspection type
     }"
     @open-appointment-modal.window="
         showModal = true;
@@ -84,10 +86,11 @@
                     <input type="hidden" name="consultant_id" value="{{ auth()->id() }}">
                     <input type="hidden" name="application_id" x-model="applicationId">
                     <input type="hidden" name="applicant_id" x-model="applicantId">
+                    <input type="hidden" name="user_timezone" id="schedule_modal_user_timezone" value="{{ old('user_timezone', auth()->user()?->timezone ?? config('app.timezone')) }}">
 
                     <div class="space-y-4 max-h-[70vh] overflow-y-auto px-1">
 
-                        <!-- Application Selector (shown when no application is pre-selected) -->
+                        <!-- Application Selector -->
                         <div x-show="showApplicationSelector">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Select Application <span class="text-red-500">*</span>
@@ -112,7 +115,7 @@
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Choose the application for this appointment</p>
                         </div>
 
-                        <!-- Selected Application Display (shown when application is pre-selected) -->
+                        <!-- Selected Application Display -->
                         <div x-show="!showApplicationSelector && applicationId" class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                             <div class="flex items-start gap-3">
                                 <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -131,21 +134,40 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Appointment Type <span class="text-red-500">*</span>
                             </label>
-                            <select name="type" required 
+                            <select name="type" x-model="appointmentType" required 
                                 class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                        focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
                                 <option value="">Select type</option>
-                                <option value="meet_and_greet" {{ old('type') == 'meet_and_greet' ? 'selected' : '' }}>Meet and Greet</option>
-                                <option value="initial_inspection" {{ old('type') == 'initial_inspection' ? 'selected' : '' }}>Initial Inspection</option>
-                                <option value="second_inspection" {{ old('type') == 'second_inspection' ? 'selected' : '' }}>Second Inspection</option>
-                                <option value="final_inspection" {{ old('type') == 'final_inspection' ? 'selected' : '' }}>Final Inspection</option>
-                                <option value="contract_signing" {{ old('type') == 'contract_signing' ? 'selected' : '' }}>Contract Signing</option>
-                                <option value="follow_up" {{ old('type') == 'follow_up' ? 'selected' : '' }}>Follow Up</option>
+                                <option value="meet_and_greet">Meet and Greet</option>
+                                <option value="initial_inspection">Initial Inspection</option>
+                                <option value="second_inspection">Second Inspection</option>
+                                <option value="final_inspection">Final Inspection</option>
+                                <option value="contract_signing">Contract Signing</option>
+                                <option value="follow_up">Follow Up</option>
                             </select>
                             @error('type')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        <!-- Inspection Type (only if follow_up) -->
+                       <div x-show="appointmentType === 'follow_up'">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Inspection Type <span class="text-red-500">*</span>
+    </label>
+    <select name="inspection_type" 
+            x-model="inspectionType" 
+            :required="appointmentType === 'follow_up'"
+            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
+                   focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
+        <option value="">Select type</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="unscheduled">Unscheduled</option>
+    </select>
+    @error('inspection_type')
+        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+    @enderror
+</div>
 
                         <!-- Title -->
                         <div>
@@ -170,15 +192,31 @@
                             @enderror
                         </div>
 
-                        <!-- Date and Time -->
+                         <!-- Date & Duration -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date & Time*</label>
                                 <input type="datetime-local" name="scheduled_at" required 
                                     value="{{ old('scheduled_at') }}"
-                                    min="{{ now()->format('Y-m-d\TH:i') }}"
+                                    min="{{ now(config('app.timezone'))->format('Y-m-d\TH:i') }}"
                                     class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                            focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
+                                @php
+                                    $timezoneLabel = auth()->user()?->timezone ?? config('app.timezone');
+                                    $timezoneText = $timezoneLabel === 'America/Toronto' ? 'Eastern Time' : $timezoneLabel;
+                                @endphp
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Time is in {{ $timezoneText }}
+                                </p>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        const browserTimezone = sessionStorage.getItem('userTimezone');
+                                        const timezoneInput = document.getElementById('schedule_modal_user_timezone');
+                                        if (timezoneInput && browserTimezone) {
+                                            timezoneInput.value = browserTimezone;
+                                        }
+                                    });
+                                </script>
                                 @error('scheduled_at')
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
@@ -201,10 +239,10 @@
                             <select name="location_type" x-model="locationType" required
                                 class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                        focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
-                                <option value="home" {{ old('location_type', 'home') == 'home' ? 'selected' : '' }}>Home</option>
-                                <option value="office" {{ old('location_type') == 'office' ? 'selected' : '' }}>Office</option>
-                                <option value="virtual" {{ old('location_type') == 'virtual' ? 'selected' : '' }}>Virtual</option>
-                                <option value="other" {{ old('location_type') == 'other' ? 'selected' : '' }}>Other</option>
+                                <option value="home">Home</option>
+                                <option value="office">Office</option>
+                                <option value="virtual">Virtual</option>
+                                <option value="other">Other</option>
                             </select>
                             @error('location_type')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -214,8 +252,7 @@
                         <!-- Location Address -->
                         <div x-show="locationType !== 'virtual'">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location Address*</label>
-                            <input type="text" name="location_address"
-                                x-model="applicantAddress"
+                            <input type="text" name="location_address" x-model="applicantAddress"
                                 :required="locationType !== 'virtual'"
                                 placeholder="Enter address or it will auto-fill from application"
                                 class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
@@ -228,8 +265,7 @@
                         <!-- Virtual Meeting Link -->
                         <div x-show="locationType === 'virtual'">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Meeting Link*</label>
-                            <input type="url" name="virtual_meeting_link" placeholder="https://zoom.us/j/..."
-                                value="{{ old('virtual_meeting_link') }}"
+                            <input type="url" name="virtual_meeting_link" placeholder="https://zoom.us/j/..." value="{{ old('virtual_meeting_link') }}"
                                 :required="locationType === 'virtual'"
                                 class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                        focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
@@ -241,8 +277,7 @@
                         <!-- Location Notes -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location Notes</label>
-                            <input type="text" name="location_notes" placeholder="e.g., Ring the doorbell"
-                                value="{{ old('location_notes') }}"
+                            <input type="text" name="location_notes" placeholder="e.g., Ring the doorbell" value="{{ old('location_notes') }}"
                                 class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                        focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
                             @error('location_notes')
@@ -253,9 +288,7 @@
                         <!-- Preparation Notes -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preparation Notes</label>
-                            <textarea name="preparation_notes" rows="2" placeholder="What to prepare or bring"
-                                class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
-                                       focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">{{ old('preparation_notes') }}</textarea>
+                            <textarea name="preparation_notes" rows="2" placeholder="What to prepare or bring" class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">{{ old('preparation_notes') }}</textarea>
                             @error('preparation_notes')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
@@ -296,11 +329,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             window.dispatchEvent(new CustomEvent('open-appointment-modal', {
                 detail: {
-                    applicationId: {{ old('application_id', 'null') }},
-                    applicantId: {{ old('applicant_id', 'null') }},
-                    applicantAddress: '{{ old('location_address', '') }}'
+                    applicationId: {{ $applicationId ?? 'null' }},
+                    applicantId: {{ $applicantId ?? 'null' }},
+                    applicantAddress: '{{ $address ?? '' }}'
                 }
             }));
+
         });
     </script>
 @endif

@@ -49,32 +49,34 @@
                      class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-10">
                     
                     @if(!$application->consultant_id)
-                        <button onclick="openAssignModal()" 
+                        <button @click="$dispatch('open-assign-modal')" 
                                 class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
                             Assign Consultant
                         </button>
                     @else
-                        <button onclick="openReassignModal()" 
+                        <button @click="$dispatch('open-reassign-modal')" 
                                 class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
                             Reassign Consultant
                         </button>
                     @endif
 
                     @if(in_array($application->status, ['submitted', 'under_review', 'final_review']))
-                        <form method="POST" action="{{ route('admin.applications.approve', $application) }}" 
-                              onsubmit="return confirm('Are you sure you want to approve this application?')">
-                            @csrf
-                            <button type="submit" 
-                                    class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-green-600 dark:text-green-400">
-                                Approve Application
-                            </button>
-                        </form>
+                       <button @click="showActions = false; $dispatch('open-approve-modal')" 
+                                class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-green-600 dark:text-green-400">
+                            Approve Application
+                        </button>
+                        @endif
 
-                        <button onclick="openRejectModal()" 
+                        <button @click="showActions = false; $dispatch('open-reject-modal')" 
                                 class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400">
                             Reject Application
                         </button>
-                    @endif
+
+                        <button @click="showActions = false; $dispatch('open-activate-modal')" 
+                                class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400">
+                            Activate profile
+                        </button>
+                    
 
                     <a href="{{ route('admin.applications.audit-log', $application) }}" 
                        class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
@@ -94,7 +96,7 @@
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <p class="text-sm text-gray-600 dark:text-gray-400">Progress</p>
-            <p class="text-2xl font-bold text-purple-600">{{ $application->completion_percentage ?? 0 }}%</p>
+            <p class="text-2xl font-bold text-purple-600">{{ number_format($application->application_progress_percentage ?? 0, 0) }}%</p>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <p class="text-sm text-gray-600 dark:text-gray-400">Documents</p>
@@ -198,8 +200,8 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
                                 </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $document->name }}</p>
+                                <div class="flex-1 min-w-0 max-w-[200px]">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate" title="{{ $document->name }}">{{ $document->name }}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
                                         Uploaded {{ $document->created_at->diffForHumans() }}
                                     </p>
@@ -223,7 +225,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Appointments</h2>
                     @if($application->consultant_id)
-                        <a href="{{ route('consultant.appointments.create', ['application_id' => $application->id]) }}" 
+                        <a href="{{ route('admin.appointments.create', ['application_id' => $application->id]) }}" 
                            class="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400">
                             Schedule New →
                         </a>
@@ -364,7 +366,7 @@
                         </div>
                     @endif
                     
-                    <button onclick="openReassignModal()" 
+                    <button @click="$dispatch('open-reassign-modal')" 
                             class="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         Reassign Consultant
                     </button>
@@ -374,7 +376,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                         <p class="text-gray-500 dark:text-gray-400 mb-4">No consultant assigned</p>
-                        <button onclick="openAssignModal()" 
+                        <button @click="$dispatch('open-assign-modal')" 
                                 class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors">
                             Assign Consultant
                         </button>
@@ -398,7 +400,7 @@
                         </div>
                     </div>
                     
-<div class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                        <div class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600 dark:text-gray-400">Documents Approved</span>
                             <span class="font-medium text-gray-900 dark:text-white">
@@ -564,7 +566,7 @@
                         </a>
                     @endif
                     
-                    <button onclick="openSendNotificationModal()" 
+                    <button @click="$dispatch('open-notification-modal')" 
                             class="w-full flex items-center justify-center gap-3 p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
@@ -579,6 +581,7 @@
 
 <!-- Assign Consultant Modal -->
 <div x-data="{ showAssignModal: false }" 
+     @open-assign-modal.window="showAssignModal = true"
      @keydown.escape.window="showAssignModal = false">
     <div x-show="showAssignModal" 
          class="fixed inset-0 z-50 overflow-y-auto" 
@@ -634,8 +637,117 @@
     </div>
 </div>
 
+<!-- Reassign Consultant Modal (identical to Assign) -->
+<div x-data="{ showReassignModal: false }" 
+     @open-reassign-modal.window="showReassignModal = true"
+     @keydown.escape.window="showReassignModal = false">
+    <div x-show="showReassignModal" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-50" @click="showReassignModal = false"></div>
+            
+            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Reassign Consultant</h3>
+                
+                <form method="POST" action="{{ route('admin.applications.assign-consultant', $application) }}">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Select New Consultant
+                        </label>
+                        <select name="consultant_id" required
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                            <option value="">Choose a consultant...</option>
+                            @foreach($consultants as $consultant)
+                                <option value="{{ $consultant->id }}" 
+                                    {{ $application->consultant_id === $consultant->id ? 'selected' : '' }}>
+                                    {{ $consultant->name }} 
+                                    @if($consultant->consultant)
+                                        ({{ $consultant->assignedApplications()->count() }} active applications)
+                                    @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Reason for Reassignment (Optional)
+                        </label>
+                        <textarea name="notes" rows="3"
+                                  class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                                  placeholder="Why are you reassigning this application?"></textarea>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button type="button" @click="showReassignModal = false"
+                                class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium">
+                            Reassign
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Application Modal -->
+<div x-data="{ showApproveModal: false }" 
+     @open-approve-modal.window="showApproveModal = true"
+     @keydown.escape.window="showApproveModal = false">
+    <div x-show="showApproveModal" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-50" @click="showApproveModal = false"></div>
+            
+            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
+                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">Approve Application</h3>
+                
+                <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+                    Are you sure you want to approve this application? The applicant will be notified and their dayhome will be licensed.
+                </p>
+                
+                <div class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p class="text-sm text-green-800 dark:text-green-300">
+                        <strong>Applicant:</strong> {{ $application->full_name }}
+                    </p>
+                    <p class="text-sm text-green-800 dark:text-green-300">
+                        <strong>Application #:</strong> {{ $application->application_number }}
+                    </p>
+                </div>
+                
+                <form method="POST" action="{{ route('admin.applications.approve', $application) }}">
+                    @csrf
+                    <div class="flex gap-3">
+                        <button type="button" @click="showApproveModal = false"
+                                class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
+                            Approve Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Reject Application Modal -->
 <div x-data="{ showRejectModal: false }" 
+     @open-reject-modal.window="showRejectModal = true"
      @keydown.escape.window="showRejectModal = false">
     <div x-show="showRejectModal" 
          class="fixed inset-0 z-50 overflow-y-auto" 
@@ -678,9 +790,62 @@
         </div>
     </div>
 </div>
-
+<!-- Activate profile Modal -->
+<div x-data="{ showActivateModal: false }" 
+     @open-activate-modal.window="showActivateModal = true"
+     @keydown.escape.window="showActivateModal = false">
+    <div x-show="showActivateModal" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-50" 
+                 @click="showActivateModal = false"></div>
+            
+            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
+                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+                    Activate profile
+                </h3>
+                
+                <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+                    Are you sure you want to activate this application? Applicant access and system functions will be enabled.
+                </p>
+                
+                <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                        <strong>Applicant:</strong> {{ $application->full_name }}
+                    </p>
+                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                        <strong>Application #:</strong> {{ $application->application_number }}
+                    </p>
+                </div>
+                
+                <form method="POST" action="{{ route('admin.applications.activate-dayhome', $application) }}">
+                    @csrf
+                    <div class="flex gap-3">
+                        <button type="button" 
+                                @click="showActivateModal = false"
+                                class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-purp-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                            Activate profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Send Notification Modal -->
 <div x-data="{ showNotificationModal: false }" 
+     @open-notification-modal.window="showNotificationModal = true"
      @keydown.escape.window="showNotificationModal = false">
     <div x-show="showNotificationModal" 
          class="fixed inset-0 z-50 overflow-y-auto" 
@@ -691,8 +856,7 @@
             <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Send Notification</h3>
                 
-                <form method="POST" action="{{ route('notifications.send', $application->user) }}">
-                    @csrf
+                <form method="POST" action="{{ route('notifications.send', $application->user ? $application->user->id : $application->id) }}">                        @csrf
                     <input type="hidden" name="application_id" value="{{ $application->id }}">
                     
                     <div class="mb-4">
@@ -742,24 +906,8 @@
 </div>
 
 <script>
-function openAssignModal() {
-    Alpine.store('app').showAssignModal = true;
-    document.querySelector('[x-data*="showAssignModal"]').__x.$data.showAssignModal = true;
-}
-
-function openReassignModal() {
-    document.querySelector('[x-data*="showAssignModal"]').__x.$data.showAssignModal = true;
-}
-
-function openRejectModal() {
-    document.querySelector('[x-data*="showRejectModal"]').__x.$data.showRejectModal = true;
-}
-
-function openSendNotificationModal() {
-    document.querySelector('[x-data*="showNotificationModal"]').__x.$data.showNotificationModal = true;
-}
+[x-cloak] { display: none !important; }
 </script>
-
 <style>
 [x-cloak] { display: none !important; }
 </style>

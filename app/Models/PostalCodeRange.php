@@ -16,7 +16,7 @@ class PostalCodeRange extends Model
     ];
 
     protected $casts = [
-        'full_postal_codes' => 'json', // If using specific full codes as JSON
+        'full_postal_codes' => 'json',
     ];
 
     /**

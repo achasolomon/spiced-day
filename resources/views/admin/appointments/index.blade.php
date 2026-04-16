@@ -189,12 +189,12 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
-                                    <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                                        {{ $appointment->applicant->initials }}
+                                   <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                                        {{ $appointment->applicant?->initials ?? substr($appointment->application->educator_first_name, 0, 1) . substr($appointment->application->educator_last_name, 0, 1) }}
                                     </div>
                                     <div class="ml-3">
                                         <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                            {{ $appointment->applicant->name }}
+                                            {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
                                         </p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">
                                             App #{{ $appointment->application->application_number }}

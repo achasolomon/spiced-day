@@ -75,16 +75,33 @@ class RegisteredUserController extends Controller
         ]);
         
         // 3. SEND EMAIL WITH THE CODE
-        // You MUST create the Mailable class 'VerifyEmailCode'
-        Mail::to($user->email)->send(new VerifyEmailCodeMail($token));
+        // Always dispatch to queue to prevent blocking
+        $mail = new VerifyEmailCodeMail($token);
+        
+        try {
+            // Always dispatch to queue (even if sync) to prevent blocking
+            Mail::to($user->email)->queue($mail);
+            
+            // 5. REDIRECT TO THE TOKEN VERIFICATION FORM
+            return redirect()->route('token.notice')->with([
+                 'success' => 'Your account has been created. A verification code has been sent to your email.',
+                 'email' => $user->email // Pass email for the verification form
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to queue verification email during registration', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Still redirect but with warning about email delivery
+            return redirect()->route('token.notice')->with([
+                 'warning' => 'Your account has been created, but we were unable to send the verification email. Please contact support or try resending. Your verification code is: ' . $token,
+                 'email' => $user->email
+            ]);
+        }
         
         // 4. REMOVE AUTH::LOGIN($user);
         // The user is NOT logged in yet.
-
-        // 5. REDIRECT TO THE TOKEN VERIFICATION FORM
-        return redirect()->route('token.notice')->with([
-             'success' => 'Your account has been created. A verification code has been sent to your email.',
-             'email' => $user->email // Pass email for the verification form
-        ]);
     }
 }

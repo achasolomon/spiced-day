@@ -14,18 +14,7 @@
                     </svg>
                 </a>
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Inspection Report</h1>
-                @if($inspection->is_final)
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                        Finalized
-                    </span>
-                @else
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                        Pending Finalization
-                    </span>
-                @endif
+              
             </div>
             <p class="text-gray-600 dark:text-gray-400">{{ ucwords(str_replace('_', ' ', $inspection->type)) }} conducted on {{ $inspection->conducted_at->format('F j, Y') }}</p>
         </div>
@@ -36,14 +25,7 @@
                 </svg>
                 Print Report
             </button>
-            @if(!$inspection->is_final)
-                <form action="{{ route('admin.inspections.finalize', $inspection) }}" method="POST" onsubmit="return confirm('Are you sure you want to finalize this inspection? This action cannot be undone.')">
-                    @csrf
-                    <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
-                        Finalize Inspection
-                    </button>
-                </form>
-            @endif
+        
         </div>
     </div>
 

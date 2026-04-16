@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'preferences',
         'avatar',
         'email_verification_token',
+        'timezone',
     ];
 
     protected $hidden = [
@@ -135,6 +136,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(AuditLog::class);
     }
 
+    
     // Scopes
 
     public function scopeActive($query)
@@ -221,9 +223,39 @@ class User extends Authenticatable implements MustVerifyEmail
             'draft', 'submitted', 'under_review', 'initial_inspection_scheduled',
             'initial_inspection_completed', 'documents_pending', 'documents_submitted', 'documents_approved',
             'second_inspection_scheduled', 'second_inspection_completed',
-            'final_review'
+            'final_inspection_scheduled', 'final_inspection_completed', 'final_passed', 'final_failed', 'contract_signing_scheduled', 
+            'contract_signed', 'approved', 'active', 'compliance_inspection_due', 'compliance_inspection_scheduled', 'compliance_inspection_completed', 
         ])->exists();
     }
+    /**
+ * Educator profile relationship
+ */
+public function educatorProfile()
+{
+    return $this->hasOne(EducatorProfile::class);
+}
+
+/**
+ * Check if user has educator profile
+ */
+public function hasEducatorProfile()
+{
+    return $this->educatorProfile()->exists();
+}
+
+/**
+ * Get or create educator profile
+ */
+public function getOrCreateEducatorProfile()
+{
+    return $this->educatorProfile()->firstOrCreate(
+        ['user_id' => $this->id],
+        [
+            'current_capacity' => 0,
+            'is_complete' => false,
+        ]
+    );
+}
 
     public function getActiveApplication()
     {
@@ -231,7 +263,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'draft', 'submitted', 'meet_and_greet_scheduled','meet_and_greet_completed', 'initial_inspection_scheduled',
             'initial_inspection_completed', 'documents_pending', 'documents_submitted', 'documents_approved',
             'second_inspection_scheduled', 'second_inspection_completed',
-            'final_review'
+            'final_inspection_scheduled', 'final_inspection_completed', 'final_passed', 'final_failed', 'contract_signing_scheduled', 
+            'contract_signed', 'approved', 'active', 'compliance_inspection_due', 'compliance_inspection_scheduled', 'compliance_inspection_completed', 
         ])->latest()->first();
     }
 

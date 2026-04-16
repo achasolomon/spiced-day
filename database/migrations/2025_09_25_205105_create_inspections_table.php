@@ -1,6 +1,6 @@
 <?php
 // =================================================================
-// MIGRATION 7: create_inspections_table.php
+// Migration 7: create_inspections_table.php
 // =================================================================
 
 use Illuminate\Database\Migrations\Migration;
@@ -22,14 +22,19 @@ return new class extends Migration
                 'initial_inspection',
                 'second_inspection', 
                 'final_inspection',
-                'follow_up_inspection',
+                'compliance_inspection_scheduled',
+                'compliance_inspection_unscheduled',
                 'complaint_inspection',
                 'renewal_inspection'
             ]);
             
             $table->string('inspection_number')->unique();
-            $table->datetime('conducted_at');
+            $table->datetime('conducted_at')->nullable(); // Nullable for drafts
             $table->integer('duration')->nullable();
+            
+            // Draft Status
+            $table->boolean('is_draft')->default(false);
+            $table->datetime('draft_saved_at')->nullable();
             
             // Results
             $table->enum('overall_result', ['pass', 'conditional_pass', 'fail', 'incomplete'])->nullable();
@@ -42,8 +47,17 @@ return new class extends Migration
             // Checklist Data
             $table->json('checklist_results')->nullable();
             $table->json('failed_items')->nullable();
+            $table->json('critical_failed_items')->nullable(); // NEW: Track critical failures separately
             $table->json('recommendations')->nullable();
             $table->json('required_actions')->nullable();
+            
+            // Follow-up Decision (for second/final inspections)
+            $table->enum('consultant_decision', [
+                'proceed_to_next_stage',
+                'schedule_follow_up',
+                'reject_application'
+            ])->nullable();
+            $table->text('decision_notes')->nullable();
             
             // Follow-up
             $table->date('follow_up_required_by')->nullable();
@@ -51,11 +65,11 @@ return new class extends Migration
             $table->date('reinspection_date')->nullable();
             $table->text('follow_up_notes')->nullable();
             
-            // Documentation
-            $table->text('summary')->nullable();
-            $table->text('observations')->nullable();
+            // Documentation (REQUIRED FIELDS)
+            $table->text('summary')->nullable(); // Will be required in validation
+            $table->text('observations')->nullable(); // Will be required in validation
             $table->text('recommendations_text')->nullable();
-            $table->text('consultant_notes')->nullable();
+            $table->text('consultant_notes')->nullable(); // Will be required in validation
             $table->json('photos')->nullable();
             
             // Signatures and Approval
@@ -77,6 +91,7 @@ return new class extends Migration
             $table->index(['application_id', 'type']);
             $table->index(['consultant_id', 'conducted_at']);
             $table->index(['overall_result', 'conducted_at']);
+            $table->index(['is_draft', 'consultant_id']);
         });
     }
 

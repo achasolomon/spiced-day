@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ darkMode: false }">
+<html lang="en" x-data="{ darkMode: false, loading: false, showPassword: false, showConfirmPassword: false }">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Create Account - SPICE'd Dayhome</title>
+    <title>
+        @if(isset($application))
+            Complete Your Profile - SPICE'd Dayhome
+        @else
+            Create Account - SPICE'd Dayhome
+        @endif
+    </title>
 
-    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+    <link rel="icon" type="image/jpg" href="{{ asset('logo.jpeg') }}">
 
-    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,46 +59,6 @@
 </head>
 
 <body class="min-h-screen bg-white font-sans antialiased">
-    <!-- Error and Success Messages -->
-    @if ($errors->any())
-        <div class="fixed top-4 right-4 z-50 max-w-md">
-            <div class="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-red-800">There were errors with your submission:</h3>
-                        <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    @if (session('success'))
-        <div class="fixed top-4 right-4 z-50 max-w-md">
-            <div class="bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium">{{ session('success') }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
     <div class="min-h-screen flex relative">
         <!-- Left Side - Welcome Panel (1/3 width) -->
         <div class="hidden lg:block lg:w-1/3 relative overflow-hidden" style="background: linear-gradient(135deg, #553e96 0%, #7c3aed 100%);">
@@ -120,7 +85,11 @@
                 
                 <!-- Welcome Description -->
                 <p class="text-lg text-white/90 mb-16 leading-relaxed max-w-sm">
-                    Join over 500 successful dayhome providers who have trusted SPICE'd with their licensing journey.
+                    @if(isset($application))
+                        Complete your profile to continue your dayhome licensing journey.
+                    @else
+                        Join over 500 successful dayhome providers who have trusted SPICE'd with their licensing journey.
+                    @endif
                 </p>
                 
                 <!-- Login Button -->
@@ -145,13 +114,32 @@
                     <h2 class="text-2xl font-bold" style="color: #553e96;">SPICE'd Dayhome</h2>
                 </div>
                 
+                <!-- Application Success Notice -->
+                @if(isset($application))
+                <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-green-800">
+                                <strong>Application #{{ $application->application_number }}</strong><br>
+                                Initial inspection completed successfully!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- Form Header -->
                 <div class="text-center mb-10">
                     <!-- Logo for desktop -->
                     <div class="hidden lg:flex justify-center items-center mb-8">
                         <div class="w-100 h-20 rounded-xl flex items-center justify-center mr-4">
-                                <img src="{{ asset('assets/images/logo.png') }}" alt="SPICE'd Dayhome Logo" class="w-10 h-10 object-contain">
-                    </div>
+                            <img src="{{ asset('assets/images/logo.png') }}" alt="SPICE'd Dayhome Logo" class="w-10 h-10 object-contain">
+                        </div>
                         <h1 class="text-xl font-bold tracking-tight">
                             <span style="color: #553e96;">SPICE'd</span>
                             <span class="text-gray-800"> Dayhome</span>
@@ -159,15 +147,27 @@
                     </div>
                     
                     <h2 class="text-4xl font-bold text-gray-900 mb-3">
-                        Create Your Account
+                        @if(isset($application))
+                            Complete Your Profile
+                        @else
+                            Create Your Account
+                        @endif
                     </h2>
                     <p class="text-gray-600">
-                        Start your dayhome licensing journey today
+                        @if(isset($application))
+                            Your initial inspection is complete! Create your profile to continue.
+                        @else
+                            Start your dayhome licensing journey today
+                        @endif
                     </p>
                 </div>
                 
                 <!-- Registration Form -->
-                <form method="POST" action="{{ route('register') }}" x-data="{ loading: false, showPassword: false, showConfirmPassword: false }" @submit="loading = true" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form method="POST" 
+                      action="@if(isset($application)){{ route('anonymous.register.submit', $application->anonymous_token) }}@else{{ route('register') }}@endif" 
+                      x-data="{ loading: false, showPassword: false, showConfirmPassword: false }" 
+                      @submit="loading = true" 
+                      class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @csrf
                     
                     <!-- First Name -->
@@ -180,8 +180,9 @@
                             name="first_name" 
                             type="text" 
                             required 
-                            value="{{ old('first_name') }}"
-                            class="w-full px-4 py-4 rounded-lg border @error('first_name') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900"
+                            value="{{ old('first_name', $application->educator_first_name ?? '') }}"
+                            @if(isset($application)) readonly @endif
+                            class="w-full px-4 py-4 rounded-lg border @error('first_name') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900 @if(isset($application)) bg-gray-100 @endif"
                             style="focus:ring-color: #e3d4fc;"
                             placeholder="Enter your first name"
                         >
@@ -200,8 +201,9 @@
                             name="last_name" 
                             type="text" 
                             required 
-                            value="{{ old('last_name') }}"
-                            class="w-full px-4 py-4 rounded-lg border @error('last_name') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900"
+                            value="{{ old('last_name', $application->educator_last_name ?? '') }}"
+                            @if(isset($application)) readonly @endif
+                            class="w-full px-4 py-4 rounded-lg border @error('last_name') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900 @if(isset($application)) bg-gray-100 @endif"
                             style="focus:ring-color: #e3d4fc;"
                             placeholder="Enter your last name"
                         >
@@ -220,7 +222,7 @@
                             name="email" 
                             type="email" 
                             required 
-                            value="{{ old('email') }}"
+                            value="{{ old('email', $application->email ?? '') }}"
                             class="w-full px-4 py-4 rounded-lg border @error('email') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900"
                             style="focus:ring-color: #e3d4fc;"
                             placeholder="Enter your email address"
@@ -228,7 +230,61 @@
                         @error('email')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+
+                        @if(isset($application) && old('email') && old('email') !== $application->email)
+                        <div class="mt-3 flex items-center">
+                            <input type="checkbox" 
+                                   name="confirm_different_email" 
+                                   id="confirm_different_email"
+                                   class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                            <label for="confirm_different_email" class="ml-2 block text-sm text-gray-700">
+                                I confirm this email is different from my application email
+                            </label>
+                        </div>
+                        @endif
                     </div>
+
+                    <!-- Phone -->
+                    <div class="md:col-span-2">
+                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number *
+                        </label>
+                        <input 
+                            id="phone" 
+                            name="phone" 
+                            type="tel" 
+                            required 
+                            value="{{ old('phone', $application->phone ?? '') }}"
+                            class="w-full px-4 py-4 rounded-lg border @error('phone') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900"
+                            style="focus:ring-color: #e3d4fc;"
+                            placeholder="(123) 456-7890"
+                        >
+                        @error('phone')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <!-- Location (only for normal registration) -->
+                    @if(!isset($application))
+                    <div class="md:col-span-2">
+                        <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+                            Your Location *
+                        </label>
+                        <input 
+                            id="location" 
+                            name="location" 
+                            type="text" 
+                            required 
+                            value="{{ old('location') }}"
+                            class="w-full px-4 py-4 rounded-lg border @error('location') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900"
+                            style="focus:ring-color: #e3d4fc;"
+                            placeholder="e.g., Calgary, Alberta"
+                        >
+                        @error('location')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    @endif
                     
                     <!-- Password -->
                     <div>
@@ -297,26 +353,21 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
-                    
-                    <!-- Location -->
-                    <div class="md:col-span-2">
-                        <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
-                            Your Location *
+
+                    <!-- Terms & Conditions -->
+                    <div class="md:col-span-2 flex items-center mt-4">
+                        <input id="agree_terms" 
+                               name="agree_terms" 
+                               type="checkbox" 
+                               required
+                               class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                        <label for="agree_terms" class="ml-2 block text-sm text-gray-700">
+                            I agree to the <a href="#" class="text-purple-600 hover:text-purple-500">Terms and Conditions</a>
                         </label>
-                        <input 
-                            id="location" 
-                            name="location" 
-                            type="text" 
-                            required 
-                            value="{{ old('location') }}"
-                            class="w-full px-4 py-4 rounded-lg border @error('location') border-red-300 @else border-gray-200 @enderror focus:ring-2 focus:border-transparent transition-all bg-white text-gray-900"
-                            style="focus:ring-color: #e3d4fc;"
-                            placeholder="e.g., Calgary, Alberta"
-                        >
-                        @error('location')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
                     </div>
+                    @error('agree_terms')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                     
                     <!-- Submit Button -->
                     <div class="md:col-span-2 mt-6">
@@ -327,19 +378,30 @@
                             style="background-color: #553e96;"
                             :class="{ 'opacity-75 cursor-not-allowed': loading }"
                         >
-                            <span x-show="!loading">Create Account</span>
+                            <span x-show="!loading">
+                                @if(isset($application))
+                                    Complete Profile & Continue
+                                @else
+                                    Create Account
+                                @endif
+                            </span>
                             <span x-show="loading" class="flex items-center justify-center">
                                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Creating Account...
+                                @if(isset($application))
+                                    Completing Profile...
+                                @else
+                                    Creating Account...
+                                @endif
                             </span>
                         </button>
                     </div>
                 </form>
                 
                 <!-- Login Link -->
+                @if(!isset($application))
                 <div class="mt-8 text-center">
                     <p class="text-gray-600">
                         Already have an account? 
@@ -348,6 +410,7 @@
                         </a>
                     </p>
                 </div>
+                @endif
             </div>
         </div>
     </div>
@@ -366,5 +429,8 @@
             });
         });
     </script>
+    
+    <!-- Toast Container -->
+    <x-toast-container />
 </body>
 </html>

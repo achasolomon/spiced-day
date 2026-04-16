@@ -8,7 +8,7 @@
     
     <title>@yield('title', 'SPICE\'d Dayhome Agency')</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+    <link rel="icon" type="image/jpg" href="{{ asset('logo.jpeg') }}">
 
     
     <!-- Fonts -->
@@ -56,6 +56,29 @@
     </style>
     
     @stack('styles')
+    
+       <!-- Timezone Detection Script -->
+    <script>
+        (function() {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            sessionStorage.setItem('userTimezone', timezone);
+            if (window.fetch) {
+                const originalFetch = window.fetch;
+                window.fetch = function(...args) {
+                    const options = args[1] || {};
+                    options.headers = options.headers || {};
+                    options.headers['X-User-Timezone'] = timezone;
+                    return originalFetch.apply(this, [args[0], options]);
+                };
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('input[name="user_timezone"]').forEach(el => {
+                    el.value = timezone;
+                });
+            });
+        })();
+    </script>
 </head>
 
 <body class="font-sans antialiased">

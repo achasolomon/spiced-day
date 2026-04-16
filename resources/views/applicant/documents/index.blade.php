@@ -58,6 +58,13 @@
                 <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Upload Documents</h2>
                 
                 @if($canUploadDocuments)
+                    @if($pendingDocuments->isEmpty())
+                        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200 mb-3">
+                            <p class="font-medium mb-1">No documents available for upload</p>
+                            <p class="text-xs">Your consultant has not yet specified which documents are required. Please contact your consultant or wait for them to set the required documents.</p>
+                        </div>
+                    @endif
+                    
                     <form action="{{ route('applicant.documents.store', $application) }}" 
                           method="POST" 
                           enctype="multipart/form-data">
@@ -76,9 +83,10 @@
                                    multiple
                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                    @change="handleFileSelect($event)"
-                                   class="hidden">
+                                   class="hidden"
+                                   @if($pendingDocuments->isEmpty()) disabled @endif>
                             
-                            <label for="fileInput" class="block cursor-pointer p-6 text-center">
+                            <label for="fileInput" class="block cursor-pointer p-6 text-center @if($pendingDocuments->isEmpty()) opacity-50 cursor-not-allowed @endif">
                                 <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                 </svg>
@@ -126,55 +134,119 @@
                                     </div>
 
                                     {{-- Compact Form Fields --}}
-                                    <div class="space-y-2">
-                                        <select x-model="fileData.category"
-                                                :name="'documents[' + index + '][category]'"
-                                                required
-                                                class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500">
-                                            <option value="">Select Document *</option>
-                                                @foreach($pendingDocuments as $req)
-                                                    <option value="{{ $req->id }}">{{ $req->name }}</option>
-                                                @endforeach
-                                        </select>
+                                <div class="space-y-2">
+                                    <select x-model="fileData.category"
+                                            :name="'documents[' + index + '][category]'"
+                                            @change="updateExpiryRequirement(fileData)"
+                                            required
+                                            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500">
+                                        <option value="">Select Document *</option>
+                                        @foreach($pendingDocuments as $req)
+                                            <option value="{{ $req->id }}" 
+                                                    data-has-expiry="{{ $req->has_expiry ? '1' : '0' }}"
+                                                    data-req-name="{{ $req->name }}">
+                                                {{ $req->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    
+                                    <input type="text" 
+                                        x-model="fileData.name"
+                                        :name="'documents[' + index + '][name]'"
+                                        required
+                                        placeholder="Document name *"
+                                        class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500">
+                                    
+                                    {{-- Date Fields (shown automatically based on document requirement) --}}
+                                    <div x-show="fileData.requiresExpiry" 
+                                        x-transition:enter="transition ease-out duration-200"
+                                        x-transition:enter-start="opacity-0 transform scale-95"
+                                        x-transition:enter-end="opacity-100 transform scale-100"
+                                        class="space-y-2">
                                         
-                                        <input type="text" 
-                                               x-model="fileData.name"
-                                               :name="'documents[' + index + '][name]'"
-                                               required
-                                               placeholder="Document name *"
-                                               class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500">
+                                        <div class="pt-2 pb-1 border-t border-gray-200 dark:border-gray-600">
+                                            <p class="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                                📅 This document requires expiry tracking
+                                            </p>
+                                        </div>
                                         
                                         <div class="grid grid-cols-2 gap-2">
-                                            <input type="date" 
-                                                   x-model="fileData.issue_date"
-                                                   :name="'documents[' + index + '][issue_date]'"
-                                                   max="{{ date('Y-m-d') }}"
-                                                   placeholder="Issue date"
-                                                   class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500">
-                                            
-                                            <input type="date" 
-                                                   x-model="fileData.expiry_date"
-                                                   :name="'documents[' + index + '][expiry_date]'"
-                                                   min="{{ date('Y-m-d') }}"
-                                                   placeholder="Expiry date"
-                                                   class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500">
+                                            <!-- Issue Date -->
+                                            <div class="flex flex-col">
+                                                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Issue Date
+                                                </label>
+                                                <input type="date"
+                                                    x-model="fileData.issue_date"
+                                                    :name="'documents[' + index + '][issue_date]'"
+                                                    max="{{ date('Y-m-d') }}"
+                                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 
+                                                            border border-gray-300 dark:border-gray-600 rounded 
+                                                            focus:ring-1 focus:ring-purple-500">
+                                            </div>
+
+                                            <!-- Expiry Date -->
+                                            <div class="flex flex-col">
+                                                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Expiry Date *
+                                                </label>
+                                                <input type="date"
+                                                    x-model="fileData.expiry_date"
+                                                    :name="'documents[' + index + '][expiry_date]'"
+                                                    :required="fileData.requiresExpiry"
+                                                    min="{{ date('Y-m-d') }}"
+                                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 
+                                                            border border-gray-300 dark:border-gray-600 rounded 
+                                                            focus:ring-1 focus:ring-purple-500">
+                                            </div>
+                                        </div>
+                                        
+                                        {{-- Date validation warning --}}
+                                        <div x-show="fileData.issue_date && fileData.expiry_date && fileData.expiry_date <= fileData.issue_date"
+                                            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-2">
+                                            <p class="text-xs text-red-800 dark:text-red-200 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Expiry date must be after issue date
+                                            </p>
                                         </div>
                                     </div>
+                                    
+                                    {{-- Optional description field --}}
+                                    <textarea x-model="fileData.description"
+                                            :name="'documents[' + index + '][description]'"
+                                            rows="2"
+                                            placeholder="Additional notes (optional)"
+                                            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-purple-500"></textarea>
                                 </div>
                             </template>
                         </div>
 
                         {{-- Actions --}}
-                        <div x-show="selectedFiles.length > 0" class="flex gap-2">
-                            <button type="submit"
-                                    class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                Upload (<span x-text="selectedFiles.length"></span>)
-                            </button>
-                            <button type="button"
-                                    @click="clearAll()"
-                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                                Clear
-                            </button>
+                        <div x-show="selectedFiles.length > 0" class="flex flex-col gap-2">
+                            <div class="flex gap-2">
+                                <button type="submit"
+                                        class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                    Upload (<span x-text="selectedFiles.length"></span>)
+                                </button>
+                                <button type="button"
+                                        @click="clearAll()"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    Clear
+                                </button>
+                            </div>
+                            
+                            {{-- Warning for large uploads --}}
+                            <div x-show="selectedFiles.length > 10" 
+                                 class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
+                                <p class="text-xs text-amber-800 dark:text-amber-200">
+                                    <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Uploading <span x-text="selectedFiles.length"></span> files. This may take a moment. Please be patient.
+                                </p>
+                            </div>
                         </div>
                     </form>
                 @else
@@ -208,7 +280,7 @@
                                 <div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900/50">
                                     {{-- Document Icon/Preview --}}
                                     <div class="w-10 h-10 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center cursor-pointer"
-                                        @click="viewDocument({{ $doc->id }}, '{{ addslashes($doc->name) }}', '{{ $doc->file_type }}', '{{ route('applicant.documents.preview', ['application' => $application, 'document' => $doc]) }}')">
+                                        @click="viewDocument({{ $doc->id }}, '{{ addslashes($doc->name) }}', '{{ $doc->file_type }}', '{{ route('applicant.documents.preview', ['application' => $application, 'document' => $doc]) }}', '{{ route('applicant.documents.download', ['application' => $application, 'document' => $doc]) }}')">
                                         @if(in_array($doc->file_type, ['jpg', 'jpeg', 'png']))
                                             <img src="{{ route('applicant.documents.preview', ['application' => $application, 'document' => $doc]) }}" 
                                                 class="w-full h-full object-cover rounded" 
@@ -221,8 +293,8 @@
                                         @endif
                                     </div>
                                     
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $doc->name }}</p>
+                                    <div class="flex-1 min-w-0 max-w-[200px]">
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate" title="{{ $doc->name }}">{{ $doc->name }}</p>
                                         <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                             <span>{{ strtoupper($doc->file_type) }}</span>
                                             <span>•</span>
@@ -307,14 +379,14 @@
                     <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white" x-text="currentDoc.name"></h3>
                         <div class="flex items-center gap-2">
-                            <a :href="`{{ route('applicant.documents.index', $application) }}/${currentDoc.id}/download`"
-                               x-show="currentDoc.id"
-                               class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                               title="Download">
+                            <button @click="downloadDocument()" 
+                                    x-show="currentDoc.id"
+                                    class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    title="Download">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                                 </svg>
-                            </a>
+                            </button>
                             <button @click="showModal = false" 
                                     class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,11 +419,11 @@
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
                                 </svg>
                                 <p class="text-gray-600 dark:text-gray-400 mb-4">Preview not available for this file type</p>
-                                <a :href="currentDoc.id ? '{{ route('applicant.documents.index', $application) }}/' + currentDoc.id + '/download' : '#'"      
-                                   x-show="currentDoc.id"
-                                   class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium">
+                                <button @click="downloadDocument()" 
+                                        x-show="currentDoc.id"
+                                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium">
                                     Download to View
-                                </a>
+                                </button>
                             </div>
                         </template>
                     </div>
@@ -372,7 +444,8 @@ document.addEventListener('alpine:init', () => {
             id: null,
             name: '',
             type: '',
-            url: ''
+            url: '',
+            downloadUrl: ''
         },
 
         handleFileSelect(event) {
@@ -406,6 +479,7 @@ document.addEventListener('alpine:init', () => {
                     name: file.name.replace(/\.[^/.]+$/, ""),
                     category: '',
                     description: '',
+                    requiresExpiry: false, // New: tracks if selected document requires expiry
                     issue_date: '',
                     expiry_date: '',
                     preview: null
@@ -423,6 +497,30 @@ document.addEventListener('alpine:init', () => {
             });
 
             this.updateFileInput();
+        },
+
+        // New method: Update expiry requirement based on selected document type
+        updateExpiryRequirement(fileData) {
+            // Find the selected option element
+            const selectElement = event.target;
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            
+            if (selectedOption && selectedOption.value) {
+                // Get the has_expiry attribute from the selected option
+                const hasExpiry = selectedOption.getAttribute('data-has-expiry') === '1';
+                fileData.requiresExpiry = hasExpiry;
+                
+                // If document doesn't require expiry, clear the date fields
+                if (!hasExpiry) {
+                    fileData.issue_date = '';
+                    fileData.expiry_date = '';
+                }
+            } else {
+                // No document selected, hide dates
+                fileData.requiresExpiry = false;
+                fileData.issue_date = '';
+                fileData.expiry_date = '';
+            }
         },
 
         updateFileInput() {
@@ -453,20 +551,28 @@ document.addEventListener('alpine:init', () => {
                     id: null,
                     name: fileData.file.name,
                     type: fileData.file.type.startsWith('image/') ? 'jpg' : 'other',
-                    url: fileData.preview
+                    url: fileData.preview,
+                    downloadUrl: ''
                 };
                 this.showModal = true;
             }
         },
 
-        viewDocument(id, name, type, url) {
+        viewDocument(id, name, type, url, downloadUrl) {
             this.currentDoc = {
                 id: id,
                 name: name,
                 type: type,
-                url: url
+                url: url,
+                downloadUrl: downloadUrl
             };
             this.showModal = true;
+        },
+
+        downloadDocument() {
+            if (this.currentDoc.downloadUrl) {
+                window.location.href = this.currentDoc.downloadUrl;
+            }
         },
 
         formatFileSize(bytes) {

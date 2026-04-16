@@ -27,7 +27,7 @@ class AppointmentReminder24Hours extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Appointment Reminder - Tomorrow at ' . $this->appointment->scheduled_at->format('g:i A'),
+            subject: 'Appointment Reminder - Tomorrow at ' . \App\Helpers\TimezoneHelper::formatForUser($this->appointment->scheduled_at, $this->appointment->applicant ?? $this->appointment->consultant, 'g:i A'),
         );
     }
 

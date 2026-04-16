@@ -299,22 +299,30 @@
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Applicant</h3>
                 
                 <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-lg font-bold">
-                        {{ $appointment->applicant->initials }}
+                   <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                        {{ $appointment->applicant?->initials ?? substr($appointment->application->educator_first_name, 0, 1) . substr($appointment->application->educator_last_name, 0, 1) }}
                     </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
+                        </p>
                     <div>
-                        <p class="font-medium text-gray-900 dark:text-white">{{ $appointment->applicant->name }}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ $appointment->applicant->email }}</p>
+                    <p class="font-semibold text-gray-900 dark:text-white">
+                        {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        {{ $appointment->applicant?->email ?? $appointment->application->email }}
+                    </p>
                     </div>
                 </div>
 
-                @if($appointment->applicant->phone)
-                    <a href="tel:{{ $appointment->applicant->phone }}" 
+                @if($appointment->applicant->phone ?? $appointment->application->phone)
+                    <a href="tel:{{ $appointment->applicant->phone ?? $appointment->application->phone }}" 
                        class="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                         </svg>
-                        {{ $appointment->applicant->phone }}
+                        {{ $appointment->applicant->phone ?? $appointment->application->phone }}
                     </a>
                 @endif
             </div>

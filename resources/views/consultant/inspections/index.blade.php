@@ -87,7 +87,7 @@
                             </td>
 
                             <td class="px-6 py-4">
-                                <span class="text-sm text-gray-900 dark:text-white">{{ $inspection->conducted_at->format('M j, Y') }}</span>
+                                <span class="text-sm text-gray-900 dark:text-white"><x-date-display :date="$inspection->conducted_at" format="M j, Y" fallback="TBA" /></span>
                             </td>
 
                             <td class="px-6 py-4">
@@ -108,12 +108,22 @@
                                     <span class="text-sm text-gray-900 dark:text-white">{{ number_format($inspection->overall_score ?? 0, 0) }}%</span>
                                 </div>
                             </td>
-
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('consultant.inspections.show', $inspection) }}" class="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg font-medium transition-colors">
-                                    View
+                            <div class="flex justify-end gap-2">
+                                <a href="{{ route('consultant.inspections.show', $inspection) }}"
+                                   class="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg">
+                                   View
                                 </a>
-                            </td>
+                        
+                                @if($inspection->overall_result === 'fail')
+                                    <a href="{{ route('consultant.inspections.reinspect', $inspection) }}"
+                                       class="px-3 py-1.5 text-sm bg-yellow-600 text-white rounded-lg">
+                                       Reinspect
+                                    </a>
+                                @endif
+                            </div>
+                        </td>
+
                         </tr>
                     @empty
                         <tr>

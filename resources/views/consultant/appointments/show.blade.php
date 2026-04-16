@@ -3,8 +3,13 @@
 @section('title', 'Appointment Details')
 
 @section('content')
-<div class="space-y-4 md:space-y-6">
-    <!-- Header with Actions -->
+@php
+    $appointmentHasStarted = $appointment->scheduled_at && $appointment->scheduled_at->lte(now());
+    $canMarkAsComplete = $appointment->status === 'confirmed';
+    $isInspectionAppointment = in_array($appointment->type, ['initial_inspection', 'second_inspection', 'final_inspection', 'follow_up']);
+@endphp
+<div class="space-y-4 md:space-y-6" x-data="{ showCompleteModal: false, showRescheduleModal: false }">
+        <!-- Header with Actions -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <div class="flex items-center gap-3 mb-2">
@@ -37,13 +42,20 @@
                 </form>
             @endif
             
-            @if($appointment->status === 'confirmed' && $appointment->scheduled_at->isPast())
-                <form action="{{ route('consultant.appointments.complete', $appointment) }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm">
-                        Mark Complete
-                    </button>
-                </form>
+            @if($canMarkAsComplete)
+                @if($isInspectionAppointment)
+                    <a href="{{ route('consultant.inspections.create', ['appointment_id' => $appointment->id]) }}" 
+                       class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm">
+                        Submit Inspection
+                    </a>
+                @else
+                    <form action="{{ route('consultant.appointments.complete', $appointment) }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm">
+                            Mark Complete
+                        </button>
+                    </form>
+                @endif
             @endif
         </div>
     </div>
@@ -54,6 +66,7 @@
             {{ $appointment->status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : '' }}
             {{ $appointment->status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : '' }}
             {{ $appointment->status === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }}
+            {{ $appointment->status === 'rescheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }}
             {{ $appointment->status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}">
             {{ ucfirst($appointment->status) }}
         </span>
@@ -74,10 +87,10 @@
                         <div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Date & Time</p>
                             <p class="font-semibold text-gray-900 dark:text-white">
-                                {{ $appointment->scheduled_at->format('l, F j, Y') }}
+                                {{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, auth()->user(), 'l, F j, Y') }}
                             </p>
                             <p class="text-gray-600 dark:text-gray-400">
-                                {{ $appointment->scheduled_at->format('g:i A') }} - {{ $appointment->ends_at->format('g:i A') }}
+                                {{ \App\Helpers\TimezoneHelper::formatTimeRange($appointment->scheduled_at, $appointment->ends_at, auth()->user()) }}
                                 <span class="text-sm">({{ $appointment->duration }} minutes)</span>
                             </p>
                         </div>
@@ -212,40 +225,50 @@
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Applicant</h3>
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-                        <span class="text-orange-600 dark:text-orange-400 font-semibold text-lg">
-                            {{ substr($appointment->applicant->name, 0, 1) }}
+                       <span class="text-orange-600 dark:text-orange-400 font-semibold text-lg">
+                            {{ substr($appointment->applicant?->name ?? $appointment->application->educator_first_name, 0, 1) }}
                         </span>
                     </div>
-                    <div>
-                        <p class="font-semibold text-gray-900 dark:text-white">{{ $appointment->applicant->name }}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ $appointment->applicant->email }}</p>
-                    </div>
-                </div>
-                @if($appointment->applicant->phone)
+                   <div>
+                    <p class="font-semibold text-gray-900 dark:text-white">
+                        {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
+                    </p>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                        <span class="font-medium">Phone:</span> {{ $appointment->applicant->phone }}
+                        {{ $appointment->applicant?->email ?? $appointment->application->email }}
+                    </p>
+                </div>
+                </div>
+                @if($appointment->applicant?->phone ?? $appointment->application->phone)
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <span class="font-medium">Phone:</span> {{ $appointment->applicant?->phone ?? $appointment->application->phone }}
                     </p>
                 @endif
             </div>
 
-            <!-- Application Info -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Related Application</h3>
-                <div class="space-y-2">
-                    <p class="text-sm">
-                        <span class="text-gray-500 dark:text-gray-400">Application #:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white">{{ $appointment->application->application_number }}</span>
-                    </p>
-                    <p class="text-sm">
-                        <span class="text-gray-500 dark:text-gray-400">Status:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white">{{ ucfirst($appointment->application->status) }}</span>
-                    </p>
-                    <a href="{{ route('consultant.applications.show', $appointment->application) }}" 
-                       class="inline-block mt-3 text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 text-sm font-medium">
-                        View Application →
-                    </a>
-                </div>
+           <!-- Application Info -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Related Application</h3>
+            <div class="space-y-2">
+                <p class="text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">Application #:</span>
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ $appointment->application->application_number }}</span>
+                </p>
+                <p class="text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                    @php
+                        $statusEnum = \App\Enums\ApplicationStatus::from($appointment->application->status);
+                        $statusColor = $statusEnum->color();
+                    @endphp
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ $statusColor }}-100 text-{{ $statusColor }}-800 dark:bg-{{ $statusColor }}-900 dark:text-{{ $statusColor }}-200">
+                        {{ $statusEnum->label() }}
+                    </span>
+                </p>
+                <a href="{{ route('consultant.applications.show', $appointment->application) }}" 
+                   class="inline-block mt-3 text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 text-sm font-medium">
+                    View Application →
+                </a>
             </div>
+        </div>
 
             <!-- Quick Actions -->
             <div class="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6">
@@ -259,9 +282,210 @@
                             Edit Appointment
                         </a>
                     @endif
+                    
+                    @if(in_array($appointment->status, ['scheduled', 'rescheduled', 'confirmed']))
+                        <button
+                            type="button"
+                            @click="showRescheduleModal = true"
+                            class="w-full px-4 py-2 text-center bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm">
+                            Reschedule Appointment
+                        </button>
+                    @endif
+
+
+                        @if($canMarkAsComplete)
+                            <button 
+                                type="button" 
+                                @click="showCompleteModal = true"
+                                class="w-full px-4 py-2 text-center bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm">
+                                Mark as Completed
+                            </button>
+                        @endif
                 </div>
             </div>
         </div>
     </div>
+
+  
+    <!-- Mark as Completed Confirmation Modal -->
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+    <div 
+        x-show="showCompleteModal"
+        x-cloak
+        style="display: none;"
+        class="fixed inset-0 z-[9999] overflow-y-auto"
+        x-transition:enter="ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+    >
+    <!-- Backdrop -->
+    <div 
+        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        @click="showCompleteModal = false"
+    ></div>
+
+    <!-- Modal -->
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div 
+            class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        >
+            <div class="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                            Mark Appointment as Completed
+                        </h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Are you sure you want to mark this {{ ucfirst(str_replace('_', ' ', $appointment->type)) }} appointment as completed? This action will update the application status and cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <form action="{{ route('consultant.appointments.complete', $appointment) }}" method="POST" class="w-full sm:ml-3 sm:w-auto">
+                    @csrf
+                    <button 
+                        type="submit"
+                        class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:w-auto">
+                        Yes, Mark as Completed
+                    </button>
+                </form>
+                <button 
+                    type="button"
+                    @click="showCompleteModal = false"
+                    class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 sm:mt-0 sm:w-auto">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+  <!-- reschedule Modal -->
+    
+   <!-- Reschedule Modal -->
+<div
+    x-show="showRescheduleModal"
+    x-cloak
+    class="fixed inset-0 z-[9999] overflow-y-auto"
+    style="display: none;"
+    x-transition:enter="ease-out duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="ease-in duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+>
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+         @click="showRescheduleModal = false"></div>
+
+    <!-- Modal -->
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div 
+            class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            @click.stop
+        >
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                    Reschedule Appointment
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    This will only update the appointment date and time.
+                </p>
+            </div>
+
+            <form
+                action="{{ route('consultant.appointments.reschedule', $appointment) }}"
+                method="POST"
+                class="p-6 space-y-4">
+                @csrf
+                @method('PUT')
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        New Date & Time <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="datetime-local"
+                        name="scheduled_at"
+                        required
+                        min="{{ now(config('app.timezone'))->format('Y-m-d\TH:i') }}"
+                        class="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               focus:ring-2 focus:ring-orange-500 focus:border-orange-500 
+                               placeholder-gray-400 dark:placeholder-gray-500
+                               transition-colors">
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        Time is in {{ config('app.timezone') === 'America/Toronto' ? 'Eastern Time' : config('app.timezone') }}
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Reason (optional)
+                    </label>
+                    <textarea
+                        name="reschedule_reason"
+                        rows="3"
+                        placeholder="Why is this appointment being rescheduled?"
+                        class="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               focus:ring-2 focus:ring-orange-500 focus:border-orange-500 
+                               placeholder-gray-400 dark:placeholder-gray-500
+                               resize-none transition-colors"></textarea>
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        This reason will be shared with the applicant
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                        type="button"
+                        @click="showRescheduleModal = false"
+                        class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 dark:bg-gray-700 
+                               text-gray-700 dark:text-gray-300 
+                               hover:bg-gray-300 dark:hover:bg-gray-600 
+                               transition-colors">
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="px-4 py-2 text-sm font-medium rounded-lg bg-orange-600 
+                               hover:bg-orange-700 text-white 
+                               transition-colors">
+                        Reschedule Appointment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 </div>
 @endsection

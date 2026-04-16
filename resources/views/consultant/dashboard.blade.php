@@ -122,11 +122,11 @@
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="font-semibold text-gray-900 dark:text-white">In Progress</h3>
                                 <span class="bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 text-xs font-semibold px-2 py-1 rounded-full">
-                                    {{ $assignedApplications->whereIn('status', ['phone_interview_scheduled', 'meet_and_greet_scheduled', 'initial_inspection_scheduled'])->count() }}
+                                    {{ $assignedApplications->whereIn('status', ['phone_interview_scheduled', 'meet_and_greet_scheduled', 'initial_inspection_scheduled', 'initial_inspection_completed', 'documents_pending', 'documents_submitted', 'documents_approved', 'second_inspection_scheduled', 'second_inspection_completed'])->count() }}
                                 </span>
                             </div>
                             <div class="space-y-3">
-                                @forelse($assignedApplications->whereIn('status', ['phone_interview_scheduled', 'meet_and_greet_scheduled', 'initial_inspection_scheduled']) as $app)
+                                @forelse($assignedApplications->whereIn('status', ['phone_interview_scheduled', 'meet_and_greet_scheduled', 'meet_and_greet_completed', 'initial_inspection_scheduled', 'initial_inspection_completed', 'documents_pending', 'documents_submitted', 'documents_approved', 'second_inspection_scheduled', 'second_inspection_completed',]) as $app)
                                     <a href="{{ route('consultant.applications.show', $app) }}" class="block bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
                                         <div class="flex items-start justify-between mb-2">
                                             <h4 class="font-semibold text-gray-900 dark:text-white text-sm">{{ $app->full_name }}</h4>
@@ -144,31 +144,65 @@
                         </div>
 
                         <!-- Final Review Column -->
-                        <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Final Review</h3>
-                                <span class="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 text-xs font-semibold px-2 py-1 rounded-full">
-                                    {{ $assignedApplications->whereIn('status', ['documents_submitted', 'second_inspection_completed'])->count() }}
-                                </span>
-                            </div>
-                            <div class="space-y-3">
-                                @forelse($assignedApplications->whereIn('status', ['documents_submitted', 'second_inspection_completed']) as $app)
-                                    <a href="{{ route('consultant.applications.show', $app) }}" class="block bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                                        <div class="flex items-start justify-between mb-2">
-                                            <h4 class="font-semibold text-gray-900 dark:text-white text-sm">{{ $app->full_name }}</h4>
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $app->updated_at->diffForHumans() }}</span>
-                                        </div>
-                                        <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">{{ $app->current_stage_display }}</p>
-                                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2">
-                                            <div class="bg-green-500 h-1.5 rounded-full" style="width: {{ $app->completion_percentage }}%"></div>
-                                        </div>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $app->completion_percentage }}% complete</p>
-                                    </a>
-                                @empty
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No applications in final review</p>
-                                @endforelse
-                            </div>
-                        </div>
+                        <!-- Final Review Column -->
+<div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-gray-900 dark:text-white">Final Review</h3>
+        <span class="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 text-xs font-semibold px-2 py-1 rounded-full">
+            {{ $assignedApplications->whereIn('status', [
+                'documents_submitted',
+                'second_inspection_completed',
+                'final_inspection_scheduled',
+                'final_inspection_completed',
+                'contract_signing_scheduled',
+                'contract_signed'
+            ])->count() }}
+        </span>
+    </div>
+
+    <div class="space-y-3">
+        @forelse($assignedApplications->whereIn('status', [
+            'documents_submitted',
+            'second_inspection_completed',
+            'final_inspection_scheduled',
+            'final_inspection_completed',
+            'contract_signing_scheduled',
+            'contract_signed'
+        ]) as $app)
+            <a href="{{ route('consultant.applications.show', $app) }}"
+               class="block bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+
+                <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-semibold text-gray-900 dark:text-white text-sm">
+                        {{ $app->full_name }}
+                    </h4>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ $app->updated_at->diffForHumans() }}
+                    </span>
+                </div>
+
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    {{ $app->current_stage_display }}
+                </p>
+
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2">
+                    <div class="bg-green-500 h-1.5 rounded-full"
+                         style="width: {{ $app->completion_percentage }}%">
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ $app->completion_percentage }}% complete
+                </p>
+            </a>
+        @empty
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                No applications in final review
+            </p>
+        @endforelse
+    </div>
+</div>
+
                     </div>
                 </div>
             </div>
@@ -192,7 +226,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="font-semibold text-gray-900 dark:text-white text-sm">{{ $appointment->title }}</p>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $appointment->applicant->name }}</p>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $appointment->applicant->name ?? $appointment->application->educator_first_name .''. $appointment->application->educator_last_name }}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">{{ $appointment->location_address }}</p>
                                     <a href="{{ route('consultant.appointments.show', $appointment) }}" class="text-xs text-orange-600 hover:text-orange-700 mt-2 inline-block">View Details →</a>
                                 </div>

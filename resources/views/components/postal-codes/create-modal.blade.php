@@ -6,10 +6,11 @@
         regions: @js($regions),
         formData: {
             region_id: '',
-            prefix: '',
+            prefixes: '',
             full_postal_codes: ''
         },
         errors: {},
+        mode: 'multiple', // 'multiple' for comma-separated prefixes, 'single' for single prefix with full codes
         showToast(type, message) {
             const toast = document.createElement('div');
             toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
@@ -22,25 +23,78 @@
             this.errors = {};
             
             try {
-                const response = await fetch('{{ route('admin.postal-codes.store') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(this.formData)
-                });
+                if (this.mode === 'multiple') {
+                    // Split prefixes by comma and submit each one
+                    const prefixes = this.formData.prefixes
+                        .split(',')
+                        .map(p => p.trim().toUpperCase())
+                        .filter(p => p.length > 0);
 
-                const data = await response.json();
+                    if (prefixes.length === 0) {
+                        this.showToast('error', 'Please enter at least one prefix');
+                        this.loading = false;
+                        return;
+                    }
 
-                if (response.ok && data.success) {
-                    this.showToast('success', data.message || 'Postal code created successfully');
-                    setTimeout(() => window.location.reload(), 1000);
+                    let successCount = 0;
+                    let failureCount = 0;
+
+                    for (const prefix of prefixes) {
+                        const response = await fetch('{{ route('admin.postal-codes.store') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                region_id: this.formData.region_id,
+                                prefix: prefix,
+                                full_postal_codes: ''
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            successCount++;
+                        } else {
+                            failureCount++;
+                            console.error(`Failed to create prefix ${prefix}:`, data);
+                        }
+                    }
+
+                    if (failureCount === 0) {
+                        this.showToast('success', `${successCount} postal code prefix(es) created successfully`);
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        this.showToast('error', `Created ${successCount}, but ${failureCount} failed`);
+                    }
                 } else {
-                    this.errors = data.errors || {};
-                    if (data.message) {
-                        this.showToast('error', data.message);
+                    // Single prefix with full postal codes
+                    const response = await fetch('{{ route('admin.postal-codes.store') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            region_id: this.formData.region_id,
+                            prefix: this.formData.prefixes.trim().toUpperCase(),
+                            full_postal_codes: this.formData.full_postal_codes
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        this.showToast('success', data.message || 'Postal code created successfully');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        this.errors = data.errors || {};
+                        if (data.message) {
+                            this.showToast('error', data.message);
+                        }
                     }
                 }
             } catch (error) {
@@ -54,10 +108,11 @@
             this.show = true;
             this.formData = {
                 region_id: '',
-                prefix: '',
+                prefixes: '',
                 full_postal_codes: ''
             };
             this.errors = {};
+            this.mode = 'multiple';
         },
         close() {
             this.show = false;
@@ -91,6 +146,32 @@
                     </button>
                 </div>
 
+                <!-- Mode Toggle -->
+                <div class="mb-6 flex gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                    <button 
+                        type="button"
+                        @click="mode = 'multiple'"
+                        :class="{
+                            'bg-orange-600 text-white': mode === 'multiple',
+                            'bg-transparent text-gray-700 dark:text-gray-300': mode !== 'multiple'
+                        }"
+                        class="flex-1 px-4 py-2 rounded-lg font-medium transition text-sm"
+                    >
+                        Multiple Prefixes
+                    </button>
+                    <button 
+                        type="button"
+                        @click="mode = 'single'"
+                        :class="{
+                            'bg-orange-600 text-white': mode === 'single',
+                            'bg-transparent text-gray-700 dark:text-gray-300': mode !== 'single'
+                        }"
+                        class="flex-1 px-4 py-2 rounded-lg font-medium transition text-sm"
+                    >
+                        Single Prefix + Codes
+                    </button>
+                </div>
+
                 <form @submit.prevent="submitForm">
                     <div class="space-y-4">
                         <div>
@@ -113,44 +194,68 @@
                             </template>
                         </div>
 
-                        <div>
+                        <!-- Multiple Prefixes Mode -->
+                        <div x-show="mode === 'multiple'">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Postal Code Prefix <span class="text-red-500">*</span>
+                                Postal Code Prefixes <span class="text-red-500">*</span>
                             </label>
                             <input 
                                 type="text" 
-                                x-model="formData.prefix"
+                                x-model="formData.prefixes"
                                 required 
-                                placeholder="e.g., T2P, T3K"
-                                class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white uppercase"
-                                :class="{ 'border-red-500': errors.prefix }"
-                                maxlength="10"
+                                placeholder="e.g., T2P, T3K, T5J, T1X"
+                                class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                                :class="{ 'border-red-500': errors.prefixes }"
                             >
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Enter the postal code prefix (e.g., T2P for Calgary)
+                                Enter multiple postal code prefixes separated by commas. Each will be created as a separate entry.
                             </p>
-                            <template x-if="errors.prefix">
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-400" x-text="errors.prefix[0]"></p>
+                            <template x-if="errors.prefixes">
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400" x-text="errors.prefixes[0]"></p>
                             </template>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Full Postal Codes (Optional)
-                            </label>
-                            <input 
-                                type="text" 
-                                x-model="formData.full_postal_codes"
-                                placeholder="e.g., T2P 1A1, T2P 1A2, T2P 1A3"
-                                class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
-                                :class="{ 'border-red-500': errors.full_postal_codes }"
-                            >
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Separate multiple codes with commas
-                            </p>
-                            <template x-if="errors.full_postal_codes">
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-400" x-text="errors.full_postal_codes[0]"></p>
-                            </template>
+                        <!-- Single Prefix + Full Codes Mode -->
+                        <div x-show="mode === 'single'" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Postal Code Prefix <span class="text-red-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    x-model="formData.prefixes"
+                                    required 
+                                    placeholder="e.g., T2P"
+                                    class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white uppercase"
+                                    :class="{ 'border-red-500': errors.prefixes }"
+                                    maxlength="10"
+                                >
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Enter a single postal code prefix (e.g., T2P for Calgary)
+                                </p>
+                                <template x-if="errors.prefixes">
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400" x-text="errors.prefixes[0]"></p>
+                                </template>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Full Postal Codes (Optional)
+                                </label>
+                                <textarea 
+                                    x-model="formData.full_postal_codes"
+                                    placeholder="e.g., T2P 1A1, T2P 1A2, T2P 1A3"
+                                    rows="3"
+                                    class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                                    :class="{ 'border-red-500': errors.full_postal_codes }"
+                                ></textarea>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Separate multiple codes with commas. Leave empty if you only want the prefix.
+                                </p>
+                                <template x-if="errors.full_postal_codes">
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400" x-text="errors.full_postal_codes[0]"></p>
+                                </template>
+                            </div>
                         </div>
                     </div>
 
@@ -168,7 +273,10 @@
                             :disabled="loading"
                             class="w-full sm:flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span x-show="!loading">Create Postal Code</span>
+                            <span x-show="!loading">
+                                <span x-show="mode === 'multiple'">Create Prefixes</span>
+                                <span x-show="mode === 'single'">Create Postal Code</span>
+                            </span>
                             <span x-show="loading">Creating...</span>
                         </button>
                     </div>

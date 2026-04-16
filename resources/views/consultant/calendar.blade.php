@@ -24,19 +24,26 @@
     <!-- Calendar Navigation -->
     <div class="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6">
         <div class="flex items-center justify-between mb-4 md:mb-6">
-            <h2 class="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">{{ now()->format('F Y') }}</h2>
+            <h2 class="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">{{ $selectedDate->format('F Y') }}</h2>
             <div class="flex items-center gap-1 md:gap-2">
-                <button class="p-1.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                @php
+                    $prevMonth = $selectedDate->copy()->subMonth();
+                    $nextMonth = $selectedDate->copy()->addMonth();
+                @endphp
+                <a href="{{ route('consultant.calendar', ['year' => $prevMonth->year, 'month' => $prevMonth->month]) }}" 
+                   class="p-1.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                     <svg class="w-4 h-4 md:w-5 md:h-5 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                </button>
-                <button class="px-3 md:px-4 py-1.5 md:py-2 bg-orange-600 text-white rounded-lg text-xs md:text-sm font-medium">Today</button>
-                <button class="p-1.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                </a>
+                <a href="{{ route('consultant.calendar') }}" 
+                   class="px-3 md:px-4 py-1.5 md:py-2 bg-orange-600 text-white rounded-lg text-xs md:text-sm font-medium hover:bg-orange-700 transition-colors">Today</a>
+                <a href="{{ route('consultant.calendar', ['year' => $nextMonth->year, 'month' => $nextMonth->month]) }}" 
+                   class="p-1.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                     <svg class="w-4 h-4 md:w-5 md:h-5 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                </button>
+                </a>
             </div>
         </div>
 
@@ -54,23 +61,27 @@
         <!-- Calendar Grid -->
         <div class="grid grid-cols-7 gap-1 md:gap-2">
             @php
-                $startOfMonth = now()->startOfMonth();
-                $endOfMonth = now()->endOfMonth();
-                $startDay = $startOfMonth->copy()->startOfWeek();
-                $endDay = $endOfMonth->copy()->endOfWeek();
+                $startOfMonth = $selectedDate->copy()->startOfMonth();
+                $endOfMonth = $selectedDate->copy()->endOfMonth();
+                $startDay = $startOfMonth->copy()->startOfWeek(Carbon\Carbon::SUNDAY);
+                $endDay = $endOfMonth->copy()->endOfWeek(Carbon\Carbon::SUNDAY);
                 $currentDay = $startDay->copy();
             @endphp
 
             @while($currentDay <= $endDay)
                 @php
-                    $isCurrentMonth = $currentDay->month === now()->month;
+                    $isCurrentMonth = $currentDay->month === $selectedDate->month && $currentDay->year === $selectedDate->year;
                     $isToday = $currentDay->isToday();
                     $dayAppointments = $weekAppointments->filter(function($apt) use ($currentDay) {
                         return $apt->scheduled_at->isSameDay($currentDay);
                     });
                 @endphp
 
-                <div class="min-h-20 md:min-h-32 p-1 md:p-2 border border-gray-200 dark:border-gray-700 rounded-md md:rounded-lg {{ $isToday ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-600' : ($isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900') }}">
+                <div 
+                    x-data="{ expanded: false }"
+                    class="min-h-20 md:min-h-32 p-1 md:p-2 border border-gray-200 dark:border-gray-700 rounded-md md:rounded-lg {{ $isToday ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-600' : ($isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900') }}"
+                    :class="expanded ? 'md:min-h-auto' : ''"
+                >
                     <div class="flex items-center justify-between mb-1 md:mb-2">
                         <span class="text-xs md:text-sm font-semibold {{ $isToday ? 'text-orange-600' : ($isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600') }}">
                             {{ $currentDay->format('j') }}
@@ -83,16 +94,40 @@
                     </div>
 
                     <div class="space-y-1 hidden md:block">
-                        @foreach($dayAppointments->take(2) as $appointment)
-                            <a href="{{ route('consultant.appointments.show', $appointment) }}" 
-                               class="block p-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-xs transition-colors">
-                                <p class="font-semibold text-blue-900 dark:text-blue-200 truncate">{{ $appointment->scheduled_at->format('g:i A') }}</p>
-                                <p class="text-blue-700 dark:text-blue-300 truncate">{{ $appointment->applicant->name }}</p>
-                            </a>
-                        @endforeach
+                        @if($dayAppointments->count() > 0)
+                            <!-- Collapsed view - show first 2 appointments -->
+                            <div x-show="!expanded" class="space-y-1">
+                                @foreach($dayAppointments->take(2) as $appointment)
+                                    <a href="{{ route('consultant.appointments.show', $appointment) }}" 
+                                       class="block p-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-xs transition-colors">
+                                        <p class="font-semibold text-blue-900 dark:text-blue-200 truncate">{{ $appointment->scheduled_at->format('g:i A') }}</p>
+                                        <p class="text-xs md:text-sm text-gray-600 dark:text-gray-400 truncate">
+                                            {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
+                                        </p>                            
+                                    </a>
+                                @endforeach
+                            </div>
 
-                        @if($dayAppointments->count() > 2)
-                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">+{{ $dayAppointments->count() - 2 }} more</p>
+                            <!-- Expanded view - show all appointments -->
+                            <div x-show="expanded" class="space-y-1">
+                                @foreach($dayAppointments as $appointment)
+                                    <a href="{{ route('consultant.appointments.show', $appointment) }}" 
+                                       class="block p-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-xs transition-colors">
+                                        <p class="font-semibold text-blue-900 dark:text-blue-200 truncate">{{ $appointment->scheduled_at->format('g:i A') }}</p>
+                                        <p class="text-xs md:text-sm text-gray-600 dark:text-gray-400 truncate">
+                                            {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
+                                        </p>                            
+                                    </a>
+                                @endforeach
+                            </div>
+
+                            @if($dayAppointments->count() > 2)
+                                <button 
+                                    @click="expanded = !expanded"
+                                    class="w-full text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-center font-medium transition-colors cursor-pointer py-1"
+                                    x-text="expanded ? 'Show less' : '+{{ $dayAppointments->count() - 2 }} more'"
+                                ></button>
+                            @endif
                         @endif
                     </div>
                 </div>
@@ -119,8 +154,10 @@
                             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-semibold text-gray-900 dark:text-white text-sm md:text-base">{{ $appointment->title }}</h3>
-                                    <p class="text-xs md:text-sm text-gray-600 dark:text-gray-400">{{ $appointment->applicant->name }}</p>
-                                </div>
+                                    <p class="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                                        {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
+                                    </p>                               
+                                 </div>
                                 <span class="inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-semibold self-start
                                     {{ $appointment->status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : '' }}
                                     {{ $appointment->status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : '' }}">

@@ -17,15 +17,15 @@ class AdminController extends Controller
         $query = User::query()->with(['consultant']);
 
         // Filter by user type
-        if ($request->has('type') && $request->type !== 'all') {
+        if ($request->has('type') && $request->type != 'all') {
             $query->where('user_type', $request->type);
         }
 
         // Filter by status
         if ($request->has('status')) {
-            if ($request->status === 'active') {
+            if ($request->status == 'active') {
                 $query->where('is_active', true);
-            } elseif ($request->status === 'inactive') {
+            } elseif ($request->status == 'inactive') {
                 $query->where('is_active', false);
             }
         }
@@ -73,6 +73,7 @@ class AdminController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['email_verified_at'] = now(); // Auto-verify admin-created accounts
+        $validated['email_verification_token'] = null; // Clear any verification token
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         $user = User::create($validated);
@@ -115,7 +116,7 @@ class AdminController extends Controller
                 'documents' => \App\Models\Document::where('uploaded_by', $user->id)->count(),
                 'appointments' => \App\Models\Appointment::where('applicant_id', $user->id)->count(),
             ];
-        } elseif ($user->user_type === 'consultant') {
+        } elseif ($user->user_type == 'consultant') {
             $stats = [
                 'assigned_applications' => $user->assignedApplications()->count(),
                 'completed_applications' => $user->assignedApplications()
@@ -239,7 +240,7 @@ class AdminController extends Controller
     public function deactivateUser(User $user)
     {
         // Prevent deactivating yourself
-        if ($user->id === auth()->id()) {
+        if ($user->id == auth()->id()) {
             return back()->with('error', 'You cannot deactivate your own account!');
         }
 

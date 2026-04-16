@@ -15,7 +15,7 @@
             padding: 20px;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #7c0bb9;
             color: white;
             padding: 30px;
             border-radius: 10px 10px 0 0;
@@ -32,14 +32,14 @@
         }
         .appointment-card {
             background: #f8f9fa;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #7c0bb9;
             padding: 20px;
             margin: 20px 0;
             border-radius: 5px;
         }
         .appointment-card h2 {
             margin-top: 0;
-            color: #667eea;
+            color: #7c0bb9;
             font-size: 20px;
         }
         .detail-row {
@@ -62,7 +62,7 @@
         }
         .button {
             display: inline-block;
-            background: #667eea;
+            background: #7c0bb9;
             color: white;
             padding: 12px 30px;
             text-decoration: none;
@@ -71,7 +71,7 @@
             font-weight: bold;
         }
         .button:hover {
-            background: #5568d3;
+            background: #a22fe0ff;
         }
         .footer {
             background: #f8f9fa;
@@ -110,22 +110,22 @@
             <h2>{{ $appointment->title }}</h2>
             
             <div class="detail-row">
-                <div class="detail-label">📅 Date:</div>
-                <div class="detail-value">{{ $appointment->scheduled_at->format('l, F j, Y') }}</div>
+                <div class="detail-label">Date:</div>
+                <div class="detail-value">{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant, 'l, F j, Y') }}</div>
             </div>
 
             <div class="detail-row">
-                <div class="detail-label">🕐 Time:</div>
-                <div class="detail-value">{{ $appointment->scheduled_at->format('g:i A') }} - {{ $appointment->ends_at->format('g:i A') }}</div>
+                <div class="detail-label">Time:</div>
+                <div class="detail-value">{{ \App\Helpers\TimezoneHelper::formatTimeRange($appointment->scheduled_at, $appointment->ends_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant) }}</div>
             </div>
 
             <div class="detail-row">
-                <div class="detail-label">⏱️ Duration:</div>
+                <div class="detail-label">Duration:</div>
                 <div class="detail-value">{{ $appointment->duration }} minutes</div>
             </div>
 
             <div class="detail-row">
-                <div class="detail-label">📍 Location:</div>
+                <div class="detail-label">Location:</div>
                 <div class="detail-value">
                     {{ $appointment->location_address }}<br>
                     <small style="color: #666;">{{ ucfirst($appointment->location_type) }}</small>
@@ -134,12 +134,12 @@
 
             @if($recipient === 'applicant')
                 <div class="detail-row">
-                    <div class="detail-label">👤 Consultant:</div>
+                    <div class="detail-label">Consultant:</div>
                     <div class="detail-value">{{ $appointment->consultant->name }}</div>
                 </div>
             @else
                 <div class="detail-row">
-                    <div class="detail-label">👤 Applicant:</div>
+                    <div class="detail-label">Applicant:</div>
                     <div class="detail-value">
                         {{ $appointment->applicant->name }}<br>
                         <small style="color: #666;">Application #{{ $appointment->application->application_number }}</small>
@@ -150,14 +150,14 @@
 
         @if($appointment->description)
             <div class="alert-box">
-                <strong>📝 Notes:</strong>
+                <strong>Notes:</strong>
                 <p style="margin: 5px 0 0 0;">{{ $appointment->description }}</p>
             </div>
         @endif
 
         @if($recipient === 'applicant' && $appointment->preparation_notes)
             <div class="alert-box">
-                <strong>✅ Please Prepare:</strong>
+                <strong>Please Prepare:</strong>
                 <p style="margin: 5px 0 0 0;">{{ $appointment->preparation_notes }}</p>
             </div>
         @endif

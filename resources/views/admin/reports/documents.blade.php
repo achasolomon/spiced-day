@@ -171,7 +171,7 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ $document->file_type }}</p>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900 dark:text-white capitalize">
-                                {{ str_replace('_', ' ', $document->category) }}
+                                {{ $document->documentCategory->name ?? 'Uncategorized' }}
                             </td>
                             <td class="px-6 py-4">
                                 <p class="text-sm text-gray-900 dark:text-white">{{ $document->application->full_name ?? 'N/A' }}</p>
