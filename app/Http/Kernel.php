@@ -67,6 +67,7 @@ class Kernel extends HttpKernel
     'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
     'application.owner' => \App\Http\Middleware\EnsureApplicationOwner::class,
     'consultant.assigned' => \App\Http\Middleware\EnsureConsultantAssigned::class,
+    'hmac' => \App\Http\Middleware\VerifyHmacSignature::class,
 ];
 
 
