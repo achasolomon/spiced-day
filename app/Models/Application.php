@@ -88,6 +88,7 @@
             'legacy_import',
             'workflow_concluded',
             'synced_at',
+            'portal_status',
         ];
 
             protected $casts = [
@@ -117,6 +118,7 @@
             'legacy_import' => 'boolean',
             'workflow_concluded' => 'boolean',
             'synced_at' => 'datetime',
+            'portal_status' => 'string',
         ];
 
         // Relations for imported info

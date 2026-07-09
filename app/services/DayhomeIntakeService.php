@@ -141,6 +141,7 @@ class DayhomeIntakeService
         try {
             $response = Http::withHeaders([
                 'Signature' => $signature,
+                'X-Timestamp' => (string) now()->timestamp,
                 'Idempotency-Key' => $payload['externalId'],
                 'Content-Type' => 'application/json',
             ])->timeout(30)->post($this->webhookUrl, $payload);
