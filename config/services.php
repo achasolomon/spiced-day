@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'intake' => [
+        'url' => env('INTAKE_WEBHOOK_URL'),
+        'secret' => env('INTAKE_WEBHOOK_SECRET'),
+    ],
+
 ];

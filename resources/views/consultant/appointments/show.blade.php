@@ -5,8 +5,7 @@
 @section('content')
 @php
     $appointmentHasStarted = $appointment->scheduled_at && $appointment->scheduled_at->lte(now());
-    $canMarkAsComplete = $appointment->status === 'confirmed';
-    $isInspectionAppointment = in_array($appointment->type, ['initial_inspection', 'second_inspection', 'final_inspection', 'follow_up']);
+    $canMarkAsComplete = $appointment->status === 'confirmed' && $appointmentHasStarted;
 @endphp
 <div class="space-y-4 md:space-y-6" x-data="{ showCompleteModal: false, showRescheduleModal: false }">
         <!-- Header with Actions -->
@@ -43,19 +42,12 @@
             @endif
             
             @if($canMarkAsComplete)
-                @if($isInspectionAppointment)
-                    <a href="{{ route('consultant.inspections.create', ['appointment_id' => $appointment->id]) }}" 
-                       class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm">
-                        Submit Inspection
-                    </a>
-                @else
-                    <form action="{{ route('consultant.appointments.complete', $appointment) }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm">
-                            Mark Complete
-                        </button>
-                    </form>
-                @endif
+                <form action="{{ route('consultant.appointments.complete', $appointment) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm">
+                        Mark Complete
+                    </button>
+                </form>
             @endif
         </div>
     </div>
@@ -87,10 +79,10 @@
                         <div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Date & Time</p>
                             <p class="font-semibold text-gray-900 dark:text-white">
-                                {{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, auth()->user(), 'l, F j, Y') }}
+                                {{ $appointment->scheduled_at->format('l, F j, Y') }}
                             </p>
                             <p class="text-gray-600 dark:text-gray-400">
-                                {{ \App\Helpers\TimezoneHelper::formatTimeRange($appointment->scheduled_at, $appointment->ends_at, auth()->user()) }}
+                                {{ $appointment->scheduled_at->format('g:i A') }} - {{ $appointment->ends_at->format('g:i A') }}
                                 <span class="text-sm">({{ $appointment->duration }} minutes)</span>
                             </p>
                         </div>
@@ -286,7 +278,7 @@
                     @if(in_array($appointment->status, ['scheduled', 'rescheduled', 'confirmed']))
                         <button
                             type="button"
-                            @click="showRescheduleModal = true"
+                            @click="showRescheduleModal = true; document.getElementById('reschedule_user_timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;"
                             class="w-full px-4 py-2 text-center bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm">
                             Reschedule Appointment
                         </button>
@@ -425,6 +417,7 @@
                 class="p-6 space-y-4">
                 @csrf
                 @method('PUT')
+                <input type="hidden" name="user_timezone" id="reschedule_user_timezone">
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

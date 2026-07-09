@@ -236,7 +236,7 @@
                     <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <p class="text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">Next Appointment</p>
                         <p class="text-sm text-blue-700 dark:text-blue-400">
-                            {{ $nextAppointment->title }} - {{ $nextAppointment->scheduled_at->format('M d, Y \a\t g:i A') }}
+                            {{ $nextAppointment->title }} - <x-timezone-date :date="$nextAppointment->scheduled_at" format="M d, Y \a\t g:i A" />
                         </p>
                     </div>
                 @endif
@@ -247,7 +247,7 @@
                             <div>
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->title }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $appointment->scheduled_at->format('M d, Y \a\t g:i A') }}
+                                    <x-timezone-date :date="$appointment->scheduled_at" format="M d, Y \a\t g:i A" />
                                 </p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -511,7 +511,7 @@
                         <div>
                             <p class="text-gray-600 dark:text-gray-400">Next Appointment</p>
                             <p class="font-medium text-blue-600">
-                                {{ $nextAppointment->scheduled_at->format('M d, Y \a\t g:i A') }}
+                                <x-timezone-date :date="$nextAppointment->scheduled_at" format="M d, Y \a\t g:i A" />
                             </p>
                         </div>
                     @endif

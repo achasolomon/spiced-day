@@ -37,7 +37,7 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Date & Time:</span>
-                        <span class="font-medium text-gray-900">{{ $appointment->scheduled_at->format('l, F j, Y \a\t g:i A') }}</span>
+                        <span class="font-medium text-gray-900">{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $appointment->applicant ?? $appointment->consultant, 'l, F j, Y \a\t g:i A') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Duration:</span>

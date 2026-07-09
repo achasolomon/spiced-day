@@ -126,7 +126,7 @@
         </div>
 
         <p style="font-size: 16px; font-weight: bold; color: #7c0bb9;">
-            Your appointment is scheduled to begin at {{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant, 'g:i A') }}
+            Your appointment is scheduled to begin at {{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $appointment->applicant ?? $appointment->consultant, 'g:i A') }}
         </p>
 
         <div class="appointment-card">
@@ -135,7 +135,7 @@
             <div class="detail-row">
                 <div class="detail-label">Time:</div>
                 <div class="detail-value">
-                    <strong>{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant, 'g:i A') }}</strong>
+                    <strong>{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $appointment->applicant ?? $appointment->consultant, 'g:i A') }}</strong>
                 </div>
             </div>
 

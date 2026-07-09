@@ -100,7 +100,7 @@
                                 @foreach($dayAppointments->take(2) as $appointment)
                                     <a href="{{ route('consultant.appointments.show', $appointment) }}" 
                                        class="block p-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-xs transition-colors">
-                                        <p class="font-semibold text-blue-900 dark:text-blue-200 truncate">{{ $appointment->scheduled_at->format('g:i A') }}</p>
+                                        <p class="font-semibold text-blue-900 dark:text-blue-200 truncate"><x-timezone-date :date="$appointment->scheduled_at" format="g:i A" /></p>
                                         <p class="text-xs md:text-sm text-gray-600 dark:text-gray-400 truncate">
                                             {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
                                         </p>                            
@@ -113,7 +113,7 @@
                                 @foreach($dayAppointments as $appointment)
                                     <a href="{{ route('consultant.appointments.show', $appointment) }}" 
                                        class="block p-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-xs transition-colors">
-                                        <p class="font-semibold text-blue-900 dark:text-blue-200 truncate">{{ $appointment->scheduled_at->format('g:i A') }}</p>
+                                        <p class="font-semibold text-blue-900 dark:text-blue-200 truncate"><x-timezone-date :date="$appointment->scheduled_at" format="g:i A" /></p>
                                         <p class="text-xs md:text-sm text-gray-600 dark:text-gray-400 truncate">
                                             {{ $appointment->applicant?->name ?? $appointment->application->educator_first_name . ' ' . $appointment->application->educator_last_name }}
                                         </p>                            

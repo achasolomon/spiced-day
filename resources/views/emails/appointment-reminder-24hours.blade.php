@@ -111,12 +111,12 @@
             
             <div class="detail-row">
                 <div class="detail-label">Date:</div>
-                <div class="detail-value">{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant, 'l, F j, Y') }}</div>
+                <div class="detail-value">{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, $appointment->applicant ?? $appointment->consultant, 'l, F j, Y') }}</div>
             </div>
 
             <div class="detail-row">
                 <div class="detail-label">Time:</div>
-                <div class="detail-value">{{ \App\Helpers\TimezoneHelper::formatTimeRange($appointment->scheduled_at, $appointment->ends_at, $recipient === 'applicant' ? $appointment->applicant : $appointment->consultant) }}</div>
+                <div class="detail-value">{{ \App\Helpers\TimezoneHelper::formatTimeRange($appointment->scheduled_at, $appointment->ends_at, $appointment->applicant ?? $appointment->consultant) }}</div>
             </div>
 
             <div class="detail-row">

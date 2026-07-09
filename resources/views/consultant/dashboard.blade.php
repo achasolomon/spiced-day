@@ -221,7 +221,7 @@
                             <div class="flex items-start gap-3">
                                 <div class="flex-shrink-0 w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                                     <span class="text-blue-600 dark:text-blue-400 font-semibold text-sm">
-                                        {{ $appointment->scheduled_at->format('H:i') }}
+                                        <x-timezone-date :date="$appointment->scheduled_at" format="H:i" />
                                     </span>
                                 </div>
                                 <div class="flex-1 min-w-0">

@@ -25,8 +25,8 @@
             font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
     </style>
-    
-     <!-- Timezone Detection Script -->
+
+    <!-- Timezone Detection Script -->
     <script>
         (function() {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -40,12 +40,6 @@
                     return originalFetch.apply(this, [args[0], options]);
                 };
             }
-
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('input[name="user_timezone"]').forEach(el => {
-                    el.value = timezone;
-                });
-            });
         })();
     </script>
 </head>
@@ -166,14 +160,7 @@
                                 <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                                     <li><a href="{{ route('profile.edit') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile Settings</a></li>
                                     <li><a href="{{ route('notifications.index') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Notifications</a></li>
-                                    <li>
-                                      <a href="https://support.spicedchildcare.com/portal/en/home"
-                                         target="_blank"
-                                         class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                         Help & Support
-                                      </a>
-                                    </li>
-                                    
+                                    <li><a href="https://support.spicedchildcare.com/portal/en/home" target="_blank" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Help & Support</a></li>
                                 </ul>
                                 <div class="py-2">
                                     <form method="POST" action="{{ route('logout') }}">
@@ -265,7 +252,7 @@
 
                     <!-- Help & Support -->
                     <li>
-                        <a href="https://support.spicedchildcare.com/portal/en/home" 
+                        <a href="https://support.spicedchildcare.com/portal/en/home/" 
                         target="_blank"
                         rel="noopener noreferrer"
                         class="flex items-center p-2 rounded-lg text-white hover:bg-white/10 {{ request()->routeIs('applicant.help') ? 'bg-white/20' : '' }}">

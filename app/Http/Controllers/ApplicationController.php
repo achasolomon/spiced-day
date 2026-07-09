@@ -13,6 +13,7 @@ use App\Mail\ApplicationSubmitted;
 use App\Models\Notification;
 use App\Models\DocumentRequirement;
 use App\Mail\RequiredDocumentsSet;
+use App\Jobs\SendDayhomeIntakeJob;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1487,6 +1488,8 @@ class ApplicationController extends Controller
             ]);
 
             DB::commit();
+
+            SendDayhomeIntakeJob::dispatch($application);
 
             return back()->with('success', 'Dayhome activated successfully! It is now operational.');
 

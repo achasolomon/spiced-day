@@ -56,8 +56,8 @@
     </style>
     
     @stack('styles')
-    
-       <!-- Timezone Detection Script -->
+
+    <!-- Timezone Detection Script -->
     <script>
         (function() {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -71,12 +71,6 @@
                     return originalFetch.apply(this, [args[0], options]);
                 };
             }
-
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('input[name="user_timezone"]').forEach(el => {
-                    el.value = timezone;
-                });
-            });
         })();
     </script>
 </head>

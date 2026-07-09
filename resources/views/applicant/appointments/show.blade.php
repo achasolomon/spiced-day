@@ -49,8 +49,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date & Time</label>
-                <p class="text-gray-900 dark:text-white">{{ \App\Helpers\TimezoneHelper::formatForUser($appointment->scheduled_at, auth()->user(), 'l, F j, Y') }}</p>
-                <p class="text-gray-900 dark:text-white font-semibold">{{ \App\Helpers\TimezoneHelper::formatTimeRange($appointment->scheduled_at, $appointment->ends_at, auth()->user()) }}</p>
+                <p class="text-gray-900 dark:text-white"><x-timezone-date :date="$appointment->scheduled_at" format="l, F j, Y" /></p>
+                <p class="text-gray-900 dark:text-white font-semibold"><x-timezone-date :date="$appointment->scheduled_at" format="g:i A" /></p>
             </div>
 
             <div>

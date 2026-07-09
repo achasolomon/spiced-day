@@ -16,7 +16,7 @@
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $appointment->title }}</h1>
                 <p class="text-gray-600 dark:text-gray-400 mt-1">
                     {{ ucwords(str_replace('_', ' ', $appointment->type)) }} - 
-                    {{ $appointment->scheduled_at->format('M d, Y \a\t g:i A') }}
+                    <x-timezone-date :date="$appointment->scheduled_at" format="M d, Y \a\t g:i A" />
                 </p>
             </div>
         </div>
@@ -52,10 +52,10 @@
                         <div>
                             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Date & Time</p>
                             <p class="text-base text-gray-900 dark:text-white">
-                                {{ $appointment->scheduled_at->format('l, F j, Y') }}
+                                <x-timezone-date :date="$appointment->scheduled_at" format="l, F j, Y" />
                             </p>
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                {{ $appointment->scheduled_at->format('g:i A') }} - {{ $appointment->ends_at->format('g:i A') }}
+                                <x-timezone-date :date="$appointment->scheduled_at" format="g:i A" /> - <x-timezone-date :date="$appointment->ends_at" format="g:i A" />
                                 ({{ $appointment->duration }} minutes)
                             </p>
                         </div>

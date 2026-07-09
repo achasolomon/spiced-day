@@ -115,8 +115,8 @@
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                 </svg>
                                 <div class="flex-1 break-words">
-                                    <div>{{ $appointment->scheduled_at->format('l, F j, Y') }}</div>
-                                    <div>{{ $appointment->scheduled_at->format('g:i A') }} • {{ $appointment->duration }} min</div>
+                                    <div><x-timezone-date :date="$appointment->scheduled_at" format="l, F j, Y" /></div>
+                                    <div><x-timezone-date :date="$appointment->scheduled_at" format="g:i A" /> • {{ $appointment->duration }} min</div>
                                 </div>
                             </div>
                             
@@ -195,7 +195,7 @@
                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                         </svg>
-                                        <span>{{ $appointment->scheduled_at->format('l, F j, Y \a\t g:i A') }}</span>
+                                        <span><x-timezone-date :date="$appointment->scheduled_at" format="l, F j, Y \a\t g:i A" /></span>
                                         <span>•</span>
                                         <span>{{ $appointment->duration }} minutes</span>
                                     </div>
@@ -281,7 +281,7 @@
                                 </div>
                                 
                                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    {{ $appointment->scheduled_at->format('F j, Y \a\t g:i A') }}
+                                    <x-timezone-date :date="$appointment->scheduled_at" format="F j, Y \a\t g:i A" />
                                 </p>
                             </div>
                             

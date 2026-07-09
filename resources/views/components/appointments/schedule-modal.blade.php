@@ -18,6 +18,7 @@
         applicantId = $event.detail.applicantId || null;
         applicantAddress = $event.detail.applicantAddress || '';
         showApplicationSelector = !applicationId;
+        document.getElementById('user_timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;
     "
     @keydown.escape.window="showModal = false"
 >
@@ -86,7 +87,7 @@
                     <input type="hidden" name="consultant_id" value="{{ auth()->id() }}">
                     <input type="hidden" name="application_id" x-model="applicationId">
                     <input type="hidden" name="applicant_id" x-model="applicantId">
-                    <input type="hidden" name="user_timezone" id="schedule_modal_user_timezone" value="{{ old('user_timezone', auth()->user()?->timezone ?? config('app.timezone')) }}">
+                    <input type="hidden" name="user_timezone" id="user_timezone">
 
                     <div class="space-y-4 max-h-[70vh] overflow-y-auto px-1">
 
@@ -192,7 +193,7 @@
                             @enderror
                         </div>
 
-                         <!-- Date & Duration -->
+                        <!-- Date & Duration -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date & Time*</label>
@@ -201,22 +202,9 @@
                                     min="{{ now(config('app.timezone'))->format('Y-m-d\TH:i') }}"
                                     class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
                                            focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white">
-                                @php
-                                    $timezoneLabel = auth()->user()?->timezone ?? config('app.timezone');
-                                    $timezoneText = $timezoneLabel === 'America/Toronto' ? 'Eastern Time' : $timezoneLabel;
-                                @endphp
                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Time is in {{ $timezoneText }}
+                                    Time is in {{ config('app.timezone') === 'America/Toronto' ? 'Eastern Time' : config('app.timezone') }}
                                 </p>
-                                <script>
-                                    document.addEventListener('DOMContentLoaded', function() {
-                                        const browserTimezone = sessionStorage.getItem('userTimezone');
-                                        const timezoneInput = document.getElementById('schedule_modal_user_timezone');
-                                        if (timezoneInput && browserTimezone) {
-                                            timezoneInput.value = browserTimezone;
-                                        }
-                                    });
-                                </script>
                                 @error('scheduled_at')
                                     <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror

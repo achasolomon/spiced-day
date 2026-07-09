@@ -157,14 +157,14 @@
     </style>
     
     @stack('styles')
-    
-      <!-- Timezone Detection Script -->
+
+    <!-- Timezone Detection Script -->
     <script>
         (function() {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             // Store in session storage for the middleware to use
             sessionStorage.setItem('userTimezone', timezone);
-            // Add to all AJAX requests and set timezone hidden input in forms
+            // Add to all AJAX requests
             document.addEventListener('DOMContentLoaded', function() {
                 // Set as default header for fetch requests
                 if (window.fetch) {
@@ -176,10 +176,6 @@
                         return originalFetch.apply(this, [args[0], options]);
                     };
                 }
-
-                document.querySelectorAll('input[name="user_timezone"]').forEach(el => {
-                    el.value = timezone;
-                });
             });
         })();
     </script>

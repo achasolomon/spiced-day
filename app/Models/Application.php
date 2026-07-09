@@ -87,6 +87,7 @@
             'imported_at',
             'legacy_import',
             'workflow_concluded',
+            'synced_at',
         ];
 
             protected $casts = [
@@ -115,6 +116,7 @@
             'imported_at' => 'datetime',
             'legacy_import' => 'boolean',
             'workflow_concluded' => 'boolean',
+            'synced_at' => 'datetime',
         ];
 
         // Relations for imported info

@@ -176,10 +176,10 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                    {{ $appointment->scheduled_at->format('M d, Y') }}
+                                    <x-timezone-date :date="$appointment->scheduled_at" format="M d, Y" />
                                 </div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $appointment->scheduled_at->format('g:i A') }}
+                                    <x-timezone-date :date="$appointment->scheduled_at" format="g:i A" />
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">

@@ -27,28 +27,10 @@ class TimezoneHelper
             return 'N/A';
         }
 
-        // Get user's timezone, default to app timezone or UTC if not available
-        $timezone = self::getUserTimezone($user);
+        // Get user's timezone, default to UTC if not available
+        $timezone = $user?->timezone ?? auth()->user()?->timezone ?? 'UTC';
 
         return $date->setTimezone($timezone)->format($format);
-    }
-
-    /**
-     * Get user's timezone from user record or auth user, default to app timezone or UTC.
-     *
-     * @param \App\Models\User|null $user
-     * @return string
-     */
-    public static function getUserTimezone($user = null)
-    {
-        $timezone = $user?->timezone ?? auth()->user()?->timezone;
-
-        if ($timezone && in_array($timezone, timezone_identifiers_list())) {
-            return $timezone;
-        }
-
-        $default = config('app.timezone', 'UTC');
-        return $default ?: 'UTC';
     }
 
     /**

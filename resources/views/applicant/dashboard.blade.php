@@ -601,15 +601,15 @@
                     @foreach($upcomingAppointments as $appointment)
                         <div class="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
                             <div class="flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center text-white" style="background: linear-gradient(135deg, #553e96 0%, #7c3aed 100%);">
-                                <span class="text-xs font-semibold">{{ $appointment->scheduled_at->format('M') }}</span>
-                                <span class="text-lg font-bold">{{ $appointment->scheduled_at->format('d') }}</span>
+                                <span class="text-xs font-semibold"><x-timezone-date :date="$appointment->scheduled_at" format="M" /></span>
+                                <span class="text-lg font-bold"><x-timezone-date :date="$appointment->scheduled_at" format="d" /></span>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-semibold text-gray-900 dark:text-white">
                                     {{ $appointment->title ?? ucfirst($appointment->type) }}
                                 </p>
                                 <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    {{ $appointment->scheduled_at->format('g:i A') }}
+                                    <x-timezone-date :date="$appointment->scheduled_at" format="g:i A" />
                                     @if($appointment->consultant)
                                         • with {{ $appointment->consultant->name }}
                                     @endif

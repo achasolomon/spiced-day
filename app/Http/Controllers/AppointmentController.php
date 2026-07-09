@@ -188,8 +188,8 @@ class AppointmentController extends Controller
         // Check if this is an unscheduled inspection
         $isUnscheduled = $validated['type'] === 'follow_up' && $validated['inspection_type'] === 'unscheduled';
 
-        // Parse datetime-local input to UTC using user timezone (from form/browser) fallback to profile/app timezone
-        $userTimezone = $validated['user_timezone'] ?? auth()->user()?->timezone ?? config('app.timezone', 'UTC');
+        // Parse datetime-local input to UTC
+        $userTimezone = $validated['user_timezone'] ?? config('app.timezone');
         $scheduledAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['scheduled_at'], $userTimezone)
             ->setTimezone('UTC');
         $endsAt = $scheduledAt->copy()->addMinutes((int) $validated['duration']);
@@ -356,13 +356,13 @@ class AppointmentController extends Controller
             'location_type' => 'required|string|in:home,office,other',
             'location_notes' => 'nullable|string',
             'preparation_notes' => 'nullable|string',
-            'user_timezone' => 'nullable|string',
         ]);
 
-        // Parse the datetime-local input (which is in user's local timezone) and convert to UTC for storage
-        $userTimezone = $validated['user_timezone'] ?? auth()->user()?->timezone ?? config('app.timezone', 'UTC');
-        $scheduledAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['scheduled_at'], $userTimezone)
-            ->setTimezone('UTC');
+        // Parse the datetime-local input (which is in user's local timezone) and convert to application timezone
+        // datetime-local inputs don't include timezone info, so we interpret it as the application timezone
+        // First, parse as if it's in the app timezone, then convert to UTC for storage
+        $scheduledAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['scheduled_at'], config('app.timezone'))
+            ->setTimezone('UTC'); // Store in UTC in database
         // Cast duration to integer to avoid type error
         $endsAt = $scheduledAt->copy()->addMinutes((int) $validated['duration']);
 
@@ -524,13 +524,6 @@ class AppointmentController extends Controller
         }
         
         Gate::authorize('complete', $appointment);
-
-        // Prevent completing inspection appointments through this method
-        $isInspectionAppointment = in_array($appointment->type, ['initial_inspection', 'second_inspection', 'final_inspection', 'follow_up']);
-        if ($isInspectionAppointment) {
-            return redirect()->route('consultant.inspections.create', ['appointment_id' => $appointment->id])
-                ->with('info', 'Please submit an inspection report for this appointment.');
-        }
 
         if ($appointment->scheduled_at && $appointment->scheduled_at->isFuture()) {
             return back()->with('error', 'This appointment cannot be marked as completed before its scheduled start time.');
